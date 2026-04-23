@@ -7,11 +7,14 @@ import { useHasInputPopoverParent } from '../components/InputPopover';
 import { usePreviewContext } from '../pages/Preview';
 import { INTERNAL_EVENTS } from '../utils/constants';
 import { getSendMessage } from '../utils/getSendMessage';
+import { isSameShapeMediaChange, isTextLeafOnlyBlocksChange } from '../utils/routing';
 
 type PreviewInputProps = Pick<
   Required<React.InputHTMLAttributes<HTMLInputElement>>,
   'onFocus' | 'onBlur'
 >;
+
+const SKIPPED_TYPES = new Set<Schema.Attribute.AnyAttribute['type']>(['component', 'dynamiczone']);
 
 export function usePreviewInputManager(
   name: string,
@@ -23,50 +26,87 @@ export function usePreviewInputManager(
     (state) => state.setPopoverField,
     false
   );
+  const features = usePreviewContext('usePreviewInputManager', (state) => state.features, false);
   const hasInputPopoverParent = useHasInputPopoverParent();
   const { value } = useField(name);
   const { type } = attribute;
+
+  /**
+   * Previous value for routing-time diff. Distinct from the popover ref below
+   * because the two effects read "previous" at different moments in the render
+   * cycle.
+   */
+  const routingPrevRef = React.useRef<unknown>(undefined);
 
   React.useEffect(() => {
     if (!iframe || !type) {
       return;
     }
 
-    /**
-     * Only send message if the field is not a data structure (component, dynamic zone)
-     * because we already send events for their fields
-     */
-    if (!['component', 'dynamiczone'].includes(type)) {
-      const sendMessage = getSendMessage(iframe);
-      sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
+    if (SKIPPED_TYPES.has(type)) {
+      return;
     }
-  }, [name, value, iframe, type]);
 
-  // Track previous value to detect media deletion
-  const prevValueRef = React.useRef(value);
+    const sendMessage = getSendMessage(iframe);
+    const prev = routingPrevRef.current;
+
+    /**
+     * Hybrid routing — per edit, pick the channel based on the prev/next diff
+     * and the iframe's advertised capabilities.
+     *
+     * Safe attribute-level edits (same-type media src swap, blocks text-leaf
+     * typing) go via `strapiFieldChange` and are patched in the injected
+     * preview script with no consumer-side work.
+     *
+     * Structural edits (cross-type media, multi-value, null, blocks add /
+     * remove / reorder) go via `strapiFieldOverride` and require the iframe
+     * to have advertised the matching `features` entry — otherwise we no-op,
+     * matching today's "no live preview for this edit" behavior.
+     */
+    if (type === 'media') {
+      if (isSameShapeMediaChange(prev, value)) {
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
+      } else if (features?.includes('media')) {
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value });
+      }
+      routingPrevRef.current = value;
+      return;
+    }
+
+    if (type === 'blocks') {
+      if (isTextLeafOnlyBlocksChange(prev, value)) {
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
+      } else if (features?.includes('blocks')) {
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value });
+      }
+      routingPrevRef.current = value;
+      return;
+    }
+
+    sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
+    routingPrevRef.current = value;
+  }, [name, value, iframe, type, features]);
+
+  const popoverPrevRef = React.useRef(value);
 
   React.useEffect(() => {
-    // Only run inside popover for media fields
     if (!hasInputPopoverParent || !setPopoverField || type !== 'media') {
       return;
     }
 
     const currentValue = value;
-    const previousValue = prevValueRef.current;
+    const previousValue = popoverPrevRef.current;
 
-    // Check if we transitioned from having a value to null/empty
     const hadValue =
       previousValue != null && (Array.isArray(previousValue) ? previousValue.length > 0 : true);
     const hasNoValue =
       currentValue == null || (Array.isArray(currentValue) ? currentValue.length === 0 : false);
 
     if (hadValue && hasNoValue) {
-      // Media was deleted, close the popover
       setPopoverField(null);
     }
 
-    // Update ref for next comparison
-    prevValueRef.current = currentValue;
+    popoverPrevRef.current = currentValue;
   }, [value, hasInputPopoverParent, setPopoverField, type]);
 
   const sendMessage = getSendMessage(iframe);

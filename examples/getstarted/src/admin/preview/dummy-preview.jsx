@@ -209,9 +209,19 @@ const PreviewComponent = () => {
   const { main, unrelated } = useLoaderData();
   const revalidator = useRevalidator();
 
+  // Live render state. Starts as the loader data; once the injected preview
+  // script has been evaluated we hand control to `window.strapiPreview`, which
+  // re-calls this setter every time an unsaved media change arrives or the
+  // loader data is replaced via a revalidation.
+  const [data, setData] = React.useState(main);
+  const mainRef = React.useRef(main);
+  mainRef.current = main;
+
   React.useEffect(() => {
+    let unsubscribe;
+
     const handleMessage = (event) => {
-      const { origin, data } = event;
+      const { origin, data: message } = event;
 
       /**
        * This is a special case because this is an admin page that's meant to be embedded within
@@ -222,24 +232,39 @@ const PreviewComponent = () => {
         return;
       }
 
-      if (data?.type === 'strapiUpdate') {
+      if (message?.type === 'strapiUpdate') {
         // The data is stale, force a refetch
         revalidator.revalidate();
-      } else if (data?.type === 'strapiScript') {
+      } else if (message?.type === 'strapiScript') {
         const script = window.document.createElement('script');
-        script.textContent = data.payload.script;
+        script.textContent = message.payload.script;
         window.document.head.appendChild(script);
+
+        // The injected script has just run, so `window.strapiPreview` exists.
+        // Hand it the current loader data as the base for merges and subscribe
+        // to merged-state updates. `subscribe` fires immediately, so `data`
+        // is refreshed synchronously.
+        window.strapiPreview?.setInitialData(mainRef.current);
+        unsubscribe = window.strapiPreview?.subscribe(setData);
       }
     };
 
     window.addEventListener('message', handleMessage);
 
-    window.parent?.postMessage({ type: 'previewReady' }, '*');
+    window.parent?.postMessage({ type: 'previewReady', features: ['media'] }, '*');
 
     return () => {
       window.removeEventListener('message', handleMessage);
+      unsubscribe?.();
     };
   }, []);
+
+  // Whenever fresh loader data lands (initial render or post-revalidation),
+  // push it into the preview so saved values win over any stale overrides.
+  // No-op until the preview script has been injected.
+  React.useEffect(() => {
+    window.strapiPreview?.setInitialData(main);
+  }, [main]);
 
   return (
     <Box
@@ -311,10 +336,10 @@ const PreviewComponent = () => {
                 Rest API data
               </Typography>
               {revalidator.state === 'loading' && <Typography>Refreshing data...</Typography>}
-              {main ? (
+              {data ? (
                 <>
-                  <Entry data={main} />
-                  <JSONInput value={JSON.stringify(main, null, 2)} disabled />
+                  <Entry data={data} />
+                  <JSONInput value={JSON.stringify(data, null, 2)} disabled />
                 </>
               ) : (
                 <Typography textColor="neutral600">No data found</Typography>

@@ -38,6 +38,7 @@ import { PreviewHeader } from '../components/PreviewHeader';
 import { useGetPreviewUrlQuery } from '../services/preview';
 import { PUBLIC_EVENTS } from '../utils/constants';
 import { getSendMessage } from '../utils/getSendMessage';
+import { parsePreviewReadyFeatures } from '../utils/handshake';
 import { previewScript } from '../utils/previewScript';
 
 import type { Schema, UID } from '@strapi/types';
@@ -88,6 +89,12 @@ interface PreviewContextValue {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   popoverField: PopoverField | null;
   setPopoverField: (value: PopoverField | null) => void;
+  /**
+   * Capabilities advertised by the preview iframe via `previewReady`.
+   * Empty until a handshake is received; re-written on every subsequent
+   * handshake (e.g., after an iframe reload).
+   */
+  features: readonly string[];
 }
 
 const [PreviewProvider, usePreviewContext] = createContext<PreviewContextValue>('PreviewPage');
@@ -110,6 +117,7 @@ const PreviewPage = () => {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [isSideEditorOpen, setIsSideEditorOpen] = React.useState(true);
   const [popoverField, setPopoverField] = React.useState<PopoverField | null>(null);
+  const [features, setFeatures] = React.useState<readonly string[]>([]);
   const { toggleNotification } = useNotification();
 
   // Read all the necessary data from the URL to find the right preview URL
@@ -151,6 +159,7 @@ const PreviewPage = () => {
       }
 
       if (event.data?.type === PUBLIC_EVENTS.PREVIEW_READY) {
+        setFeatures(parsePreviewReadyFeatures(event.data));
         const script = `(${previewScript.toString()})(${JSON.stringify({
           shouldRun: true,
           colors: previewHighlightColors,
@@ -280,6 +289,7 @@ const PreviewPage = () => {
         iframeRef={iframeRef}
         popoverField={popoverField}
         setPopoverField={setPopoverField}
+        features={features}
       >
         <FormContext
           method="PUT"

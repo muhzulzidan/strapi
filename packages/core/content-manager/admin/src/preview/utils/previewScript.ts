@@ -5,7 +5,20 @@ declare global {
     STRAPI_HIGHLIGHT_HOVER_COLOR?: string;
     STRAPI_HIGHLIGHT_ACTIVE_COLOR?: string;
     STRAPI_DISABLE_STEGA_DECODING?: boolean;
+    /**
+     * Consumer-facing API set up by the injected preview script. Consumers
+     * register their base loader data via {@link StrapiPreview.setInitialData}
+     * and subscribe to the merged render state via
+     * {@link StrapiPreview.subscribe}; the script owns the override map driven
+     * by `strapiFieldOverride` messages.
+     */
+    strapiPreview?: StrapiPreview;
   }
+}
+
+interface StrapiPreview<T = unknown> {
+  setInitialData: (data: T) => void;
+  subscribe: (listener: (data: T) => void) => () => void;
 }
 
 /**
@@ -46,16 +59,116 @@ const previewScript = (config: PreviewScriptConfig) => {
     STRAPI_FIELD_CHANGE: 'strapiFieldChange',
     STRAPI_FIELD_FOCUS_INTENT: 'strapiFieldFocusIntent',
     STRAPI_FIELD_SINGLE_CLICK_HINT: 'strapiFieldSingleClickHint',
+    STRAPI_FIELD_OVERRIDE: 'strapiFieldOverride',
   } as const;
 
+  /* -----------------------------------------------------------------------------------------------
+   * Preview state manager (media override + subscribe API)
+   *
+   * The consumer calls window.strapiPreview.setInitialData(loaderData) and
+   * window.strapiPreview.subscribe(listener) to hook a state container up to
+   * the iframe's render tree. Any strapiFieldOverride message splices into an
+   * internal override map; subscribers are always notified with the merged
+   * result so the iframe's own framework can reconcile the resulting DOM.
+   * Setting initial data resets overrides — saved values win over stale
+   * unsaved ones when the consumer revalidates after a save.
+   * ---------------------------------------------------------------------------------------------*/
+
+  const isNumericSegment = (segment: string) => /^\d+$/.test(segment);
+
+  const setAtPath = (root: unknown, path: string, value: unknown) => {
+    if (!path || root === null || typeof root !== 'object') return;
+
+    const segments = path.split('.');
+    let cursor = root as Record<string | number, unknown>;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      const next = segments[i + 1];
+      const key = isNumericSegment(segment) ? Number(segment) : segment;
+
+      if (cursor[key] === null || typeof cursor[key] !== 'object') {
+        cursor[key] = isNumericSegment(next) ? [] : {};
+      }
+
+      cursor = cursor[key] as Record<string | number, unknown>;
+    }
+
+    const tail = segments[segments.length - 1];
+    cursor[isNumericSegment(tail) ? Number(tail) : tail] = value;
+  };
+
+  const applyOverrides = (data: unknown, overrides: Record<string, unknown>): unknown => {
+    if (!data || typeof data !== 'object') return data;
+    const entries = Object.entries(overrides);
+    if (entries.length === 0) return data;
+    // JSON round-trip — data is a Strapi API response, fully serializable.
+    const clone = JSON.parse(JSON.stringify(data));
+    for (const [path, value] of entries) setAtPath(clone, path, value);
+    return clone;
+  };
+
+  const createPreviewStateManager = () => {
+    let initialData: unknown;
+    let overrides: Record<string, unknown> = {};
+    const subscribers = new Set<(data: unknown) => void>();
+    let hasInitialData = false;
+
+    const merged = () => applyOverrides(initialData, overrides);
+
+    const notify = () => {
+      const next = merged();
+      subscribers.forEach((listener) => listener(next));
+    };
+
+    return {
+      api: {
+        setInitialData(data: unknown) {
+          initialData = data;
+          overrides = {};
+          hasInitialData = true;
+          notify();
+        },
+        subscribe(listener: (data: unknown) => void) {
+          subscribers.add(listener);
+          if (hasInitialData) listener(merged());
+          return () => {
+            subscribers.delete(listener);
+          };
+        },
+      } as StrapiPreview,
+
+      applyFieldOverride(path: string, value: unknown) {
+        overrides = { ...overrides, [path]: value };
+        notify();
+      },
+
+      reset() {
+        subscribers.clear();
+        overrides = {};
+        initialData = undefined;
+        hasInitialData = false;
+      },
+    };
+  };
+
   /**
-   * Calling the function in no-run mode lets us retrieve the constants from other files and keep
-   * a single source of truth for them. It's the only way to do this because this script can't
-   * refer to any variables outside of its own scope, because it's stringified before it's run.
+   * Calling the function in no-run mode lets us retrieve the constants and pure
+   * helpers from other files and keep a single source of truth for them. It's
+   * the only way to do this because this script can't refer to any variables
+   * outside of its own scope, because it's stringified before it's run.
    */
   if (!shouldRun) {
-    return { INTERNAL_EVENTS };
+    return { INTERNAL_EVENTS, createPreviewStateManager, setAtPath, applyOverrides };
   }
+
+  // Set up the consumer-facing API synchronously so `window.strapiPreview` is
+  // already on the window by the time the consumer executes the next line
+  // after injecting the script tag. The `strapiFieldOverride` listener itself
+  // is intentionally registered in the async block below, alongside the other
+  // inbound message handlers — see the note there for why.
+  const previewState = createPreviewStateManager();
+  window.strapiPreview = previewState.api;
 
   /* -----------------------------------------------------------------------------------------------
    * Utils
@@ -74,6 +187,78 @@ const previewScript = (config: PreviewScriptConfig) => {
 
   const isMediaElement = (element: Element): boolean => {
     return element.tagName === 'IMG' || element.tagName === 'VIDEO';
+  };
+
+  const isMediaValue = (value: unknown): value is { url?: unknown; mime?: unknown } => {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      'url' in value &&
+      'mime' in value
+    );
+  };
+
+  /**
+   * A blocks field's value is an array of block nodes shaped like
+   * `{ type, children }`. Detecting this shape lets the strapiFieldChange
+   * handler route leaf-level text edits to {@link patchBlocksLeaves} instead
+   * of the plain textContent patcher, which would serialize the whole tree
+   * into `[object Object]`.
+   */
+  const isBlocksValue = (value: unknown): value is Array<{ type: unknown; children?: unknown }> => {
+    return (
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value.every(
+        (node) =>
+          typeof node === 'object' &&
+          node !== null &&
+          !Array.isArray(node) &&
+          'type' in (node as object)
+      )
+    );
+  };
+
+  /**
+   * Walks a blocks tree and, for every text leaf, finds DOM nodes whose
+   * `data-strapi-source` was stega-decoded to the leaf's path and updates
+   * their `textContent` when it differs. Structural changes never reach here
+   * — the admin routes them to the override channel — so unmatched leaves are
+   * just skipped.
+   */
+  const patchBlocksLeaves = (fieldPath: string, blocksTree: unknown) => {
+    const walk = (node: unknown, pathParts: string[]) => {
+      if (Array.isArray(node)) {
+        node.forEach((child, i) => walk(child, pathParts.concat(String(i))));
+        return;
+      }
+
+      if (typeof node !== 'object' || node === null) return;
+
+      if ('text' in (node as object)) {
+        const text = (node as { text?: unknown }).text;
+        if (typeof text !== 'string') return;
+
+        const leafPath = pathParts.concat('text').join('.');
+        const matches = document.querySelectorAll(`[${SOURCE_ATTRIBUTE}*="path=${leafPath}"]`);
+        matches.forEach((element) => {
+          if (element.textContent !== text) {
+            element.textContent = text;
+          }
+        });
+        return;
+      }
+
+      if (
+        'children' in (node as object) &&
+        Array.isArray((node as { children: unknown }).children)
+      ) {
+        walk((node as { children: unknown[] }).children, pathParts.concat('children'));
+      }
+    };
+
+    walk(blocksTree, fieldPath.split('.'));
   };
 
   /**
@@ -623,109 +808,72 @@ const previewScript = (config: PreviewScriptConfig) => {
     const handleMessage = (event: MessageEvent) => {
       if (!event.data?.type) return;
 
-      // The user typed in an input, reflect the change in the preview
+      // The user edited a field — mechanism-1 path, driven by the hybrid
+      // routing gate in the admin. Three shapes arrive here:
+      //   - string/number/boolean: set textContent on matched non-media elements.
+      //   - media file object (same-type `src` swap): set `src` on matched
+      //     img/video elements. The admin only routes here when prev and next
+      //     share a MIME category, so tag-swap hazards can't reach this branch.
+      //   - blocks tree (leaf-only edit): walk the tree, find each text leaf's
+      //     DOM counterpart by its stega-encoded `path`, and patch textContent.
       if (event.data.type === INTERNAL_EVENTS.STRAPI_FIELD_CHANGE) {
         const { field, value } = event.data.payload;
         if (!field) return;
 
-        getElementsByPath(field).forEach((element) => {
-          if (element instanceof HTMLElement) {
-            // For img/video elements, update the src attribute instead of text content
-            if (isMediaElement(element)) {
-              // Value can be a media object with url property, or a string URL
-              const url = typeof value === 'object' && value !== null ? value.url : value;
-              const mime = typeof value === 'object' && value !== null ? value.mime : undefined;
-
-              if (url) {
-                // Check if the media type matches the element type
-                const isImage = element.tagName === 'IMG';
-                const isVideo = element.tagName === 'VIDEO';
-                const isImageMime = mime?.startsWith('image/');
-                const isVideoMime = mime?.startsWith('video/');
-
-                // Check if we need to replace the element due to media type mismatch
-                const needsReplacement =
-                  mime && ((isImage && isVideoMime) || (isVideo && isImageMime));
-
-                if (needsReplacement) {
-                  // Create a new element of the correct type
-                  const newTagName = isImageMime ? 'IMG' : 'VIDEO';
-                  const newElement = document.createElement(newTagName);
-
-                  // Copy all attributes from the old element
-                  Array.from(element.attributes).forEach((attr) => {
-                    newElement.setAttribute(attr.name, attr.value);
-                  });
-
-                  // Set the new src
-                  newElement.setAttribute('src', url);
-
-                  // Copy inline styles
-                  newElement.style.cssText = element.style.cssText;
-                  newElement.style.display = '';
-
-                  // For video elements, add common attributes
-                  if (newTagName === 'VIDEO') {
-                    newElement.setAttribute('controls', '');
-                  }
-
-                  // Replace the old element with the new one
-                  element.parentNode?.replaceChild(newElement, element);
-                } else {
-                  // Same media type, just update the src
-                  const shouldShow = !mime || (isImage && isImageMime) || (isVideo && isVideoMime);
-
-                  if (shouldShow) {
-                    element.setAttribute('src', url);
-                    element.style.display = '';
-                  } else {
-                    // Hide if no mime info and types don't match (shouldn't happen)
-                    element.style.display = 'none';
-                    element.removeAttribute('src');
-                  }
+        if (isMediaValue(value)) {
+          const nextSrc = (value as { url?: unknown }).url;
+          if (typeof nextSrc === 'string') {
+            getElementsByPath(field).forEach((element) => {
+              if (element instanceof HTMLElement && isMediaElement(element)) {
+                if (element.getAttribute('src') !== nextSrc) {
+                  element.setAttribute('src', nextSrc);
                 }
-              } else {
-                // Hide element when media is deleted/empty instead of showing broken media
-                element.style.display = 'none';
-                element.removeAttribute('src');
               }
-            } else {
-              element.textContent = value || '';
-            }
+            });
+          }
+          highlightManager.updateAllHighlights();
+          return;
+        }
+
+        if (isBlocksValue(value)) {
+          patchBlocksLeaves(field, value);
+          highlightManager.updateAllHighlights();
+          return;
+        }
+
+        getElementsByPath(field).forEach((element) => {
+          if (element instanceof HTMLElement && !isMediaElement(element)) {
+            element.textContent = value || '';
           }
         });
 
-        // Handle nested media asset fields (caption, alt, etc.)
-        // These are identified by model=plugin::upload.file in the source attribute
-        if (typeof value === 'object' && value !== null) {
-          const allSourceElements = document.querySelectorAll(`[${SOURCE_ATTRIBUTE}]`);
-
-          allSourceElements.forEach((element) => {
-            const sourceAttr = element.getAttribute(SOURCE_ATTRIBUTE);
-            if (!sourceAttr) return;
-
-            // Parse the source attribute as URL search params
-            const params = new URLSearchParams(sourceAttr);
-            const model = params.get('model');
-            const elementPath = params.get('path');
-
-            // Only process media asset fields
-            if (model !== 'plugin::upload.file' || !elementPath) return;
-
-            // Check if this element's path starts with the field path (e.g., "hero.caption" starts with "hero")
-            if (elementPath.startsWith(`${field}.`)) {
-              // Extract the property name (e.g., "caption" from "hero.caption")
-              const propertyName = elementPath.slice(field.length + 1);
-              const propertyValue = value[propertyName];
-              if (element instanceof HTMLElement && propertyValue !== undefined) {
-                element.textContent = propertyValue || '';
-              }
-            }
-          });
-        }
-
         // Update highlight dimensions since the new text content may affect them
         highlightManager.updateAllHighlights();
+        return;
+      }
+
+      // A structural media or blocks edit — mechanism-2 path, only reached
+      // when the iframe advertised the matching `features` capability. We
+      // don't mutate the DOM from here (cross-type swaps and blocks add /
+      // remove / reorder all require the iframe's own framework to reconcile);
+      // we just splice the value into the override map and let subscribers
+      // (registered via window.strapiPreview.subscribe) render the merged state.
+      //
+      // IMPORTANT: this handler deliberately lives inside the async block that
+      // registers after the stega observer resolves. A synchronous listener
+      // would catch the admin's on-mount `strapiFieldOverride` burst (one per
+      // opted-in field) before the observer has had a chance to decode the
+      // server-side stega in each `<img src>` or block text leaf. Those admin
+      // messages carry plain URLs / text, so applying them would overwrite the
+      // stega in the DOM and the observer would find nothing to decode —
+      // leaving the media element (or block leaf) without the
+      // `data-strapi-source` needed for click-to-focus. Dropping the on-mount
+      // burst is safe: the iframe already has the same baseline values via its
+      // own loader response.
+      if (event.data.type === INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE) {
+        const { path, value } = event.data.payload ?? {};
+        if (typeof path !== 'string') return;
+        previewState.applyFieldOverride(path, value);
         return;
       }
 
@@ -811,6 +959,11 @@ const previewScript = (config: PreviewScriptConfig) => {
       }
 
       overlay.remove();
+
+      // Drop the consumer-facing API and forget any subscribers / overrides,
+      // so a second injection starts from a clean slate.
+      previewState.reset();
+      delete window.strapiPreview;
     };
   };
 
