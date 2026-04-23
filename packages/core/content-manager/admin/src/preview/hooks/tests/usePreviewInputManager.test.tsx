@@ -90,9 +90,17 @@ describe('usePreviewInputManager routing', () => {
       wrapper: createWrapper({ hero: mediaValue }),
     });
 
+    // Media urls are absolutized to the admin origin at the send site so
+    // cross-origin iframes can consume them directly.
     expect(postMessage).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenCalledWith(
-      { type: 'strapiFieldOverride', payload: { path: 'hero', value: mediaValue } },
+      {
+        type: 'strapiFieldOverride',
+        payload: {
+          path: 'hero',
+          value: { url: `${window.location.origin}/uploads/a.png`, mime: 'image/png' },
+        },
+      },
       IFRAME_ORIGIN
     );
   });

@@ -7,6 +7,7 @@ import { useHasInputPopoverParent } from '../components/InputPopover';
 import { usePreviewContext } from '../pages/Preview';
 import { INTERNAL_EVENTS } from '../utils/constants';
 import { getSendMessage } from '../utils/getSendMessage';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { isSameShapeMediaChange, isTextLeafOnlyBlocksChange } from '../utils/routing';
 
 type PreviewInputProps = Pick<
@@ -64,10 +65,16 @@ export function usePreviewInputManager(
      * matching today's "no live preview for this edit" behavior.
      */
     if (type === 'media') {
+      // Relative upload URLs (e.g. `/uploads/a.png`) resolve against the admin
+      // origin while the value lives in the admin, but would resolve against
+      // the iframe's origin on the other side of the postMessage boundary.
+      // Normalize here so every consumer — same-origin or cross-origin — gets
+      // an absolute URL it can render or patch without extra work.
+      const resolvedValue = resolveMediaUrl(value);
       if (isSameShapeMediaChange(prev, value)) {
-        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value: resolvedValue });
       } else if (features?.includes('media')) {
-        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value });
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value: resolvedValue });
       }
       routingPrevRef.current = value;
       return;
