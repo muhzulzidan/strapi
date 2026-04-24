@@ -5,6 +5,7 @@ import * as React from 'react';
 
 import { Form } from '@strapi/admin/strapi-admin';
 import { renderHook } from '@tests/utils';
+import { vercelStegaDecode } from '@vercel/stega';
 
 import { usePreviewContext } from '../../pages/Preview';
 import { usePreviewInputManager } from '../usePreviewInputManager';
@@ -14,6 +15,13 @@ import type { Schema } from '@strapi/types';
 jest.mock('../../pages/Preview', () => ({
   usePreviewContext: jest.fn(),
 }));
+
+const decodeSourceParams = (value: unknown) => {
+  if (typeof value !== 'string') return null;
+  const decoded = vercelStegaDecode(value);
+  if (!decoded || typeof decoded !== 'object' || !('strapiSource' in decoded)) return null;
+  return new URLSearchParams((decoded as { strapiSource: string }).strapiSource);
+};
 
 const IFRAME_ORIGIN = 'http://iframe.test';
 
@@ -28,6 +36,8 @@ type PreviewState = {
   iframeRef: ReturnType<typeof makeIframeRef> | null;
   features: readonly string[];
   setPopoverField: jest.Mock;
+  document?: { documentId: string; locale?: string | null };
+  schema?: { uid: string; kind: 'collectionType' | 'singleType' };
 };
 
 const mockPreviewContext = (state: PreviewState) => {
@@ -173,6 +183,56 @@ describe('usePreviewInputManager routing', () => {
 
     rerender({ type: 'dynamiczone' });
     expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  it('stega-encodes media override url when document + schema context is available', () => {
+    mockPreviewContext({
+      iframeRef,
+      features: ['media'],
+      setPopoverField: jest.fn(),
+      document: { documentId: 'doc-1', locale: 'en' },
+      schema: { uid: 'api::article.article', kind: 'collectionType' },
+    });
+
+    renderHook(() => usePreviewInputManager('hero', attribute('media')), {
+      wrapper: createWrapper({ hero: { url: '/uploads/a.png', mime: 'image/png' } }),
+    });
+
+    const [message] = postMessage.mock.calls[0];
+    expect(message.type).toBe('strapiFieldOverride');
+    expect(message.payload.path).toBe('hero');
+
+    const params = decodeSourceParams(message.payload.value.url);
+    expect(params?.get('path')).toBe('hero.url');
+    expect(params?.get('type')).toBe('media');
+    expect(params?.get('documentId')).toBe('doc-1');
+    expect(params?.get('model')).toBe('api::article.article');
+    expect(params?.get('locale')).toBe('en');
+    expect(message.payload.value.mime).toBe('image/png');
+  });
+
+  it('stega-encodes blocks override text leaves with ancestor fieldPath when context is available', () => {
+    const blocksValue = [{ type: 'paragraph', children: [{ type: 'text', text: 'hello' }] }];
+    mockPreviewContext({
+      iframeRef,
+      features: ['blocks'],
+      setPopoverField: jest.fn(),
+      document: { documentId: 'doc-1', locale: 'en' },
+      schema: { uid: 'api::article.article', kind: 'collectionType' },
+    });
+
+    renderHook(() => usePreviewInputManager('body', attribute('blocks')), {
+      wrapper: createWrapper({ body: blocksValue }),
+    });
+
+    const [message] = postMessage.mock.calls[0];
+    expect(message.type).toBe('strapiFieldOverride');
+    expect(message.payload.path).toBe('body');
+
+    const leafParams = decodeSourceParams(message.payload.value[0].children[0].text);
+    expect(leafParams?.get('path')).toBe('body.0.children.0.text');
+    expect(leafParams?.get('fieldPath')).toBe('body');
+    expect(leafParams?.get('type')).toBe('blocks');
   });
 
   it('does not post anything when there is no iframe connected', () => {

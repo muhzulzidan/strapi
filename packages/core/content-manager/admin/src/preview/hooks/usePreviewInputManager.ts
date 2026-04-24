@@ -1,12 +1,13 @@
 import * as React from 'react';
 
 import { useField } from '@strapi/admin/strapi-admin';
-import { Schema } from '@strapi/types';
+import { Schema, UID } from '@strapi/types';
 
 import { useHasInputPopoverParent } from '../components/InputPopover';
 import { usePreviewContext } from '../pages/Preview';
 import { INTERNAL_EVENTS } from '../utils/constants';
 import { getSendMessage } from '../utils/getSendMessage';
+import { encodeBlocksOverride, encodeMediaOverride } from '../utils/overrideStega';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { isSameShapeMediaChange, isTextLeafOnlyBlocksChange } from '../utils/routing';
 
@@ -28,6 +29,8 @@ export function usePreviewInputManager(
     false
   );
   const features = usePreviewContext('usePreviewInputManager', (state) => state.features, false);
+  const document = usePreviewContext('usePreviewInputManager', (state) => state.document, false);
+  const schema = usePreviewContext('usePreviewInputManager', (state) => state.schema, false);
   const hasInputPopoverParent = useHasInputPopoverParent();
   const { value } = useField(name);
   const { type } = attribute;
@@ -64,6 +67,16 @@ export function usePreviewInputManager(
      * to have advertised the matching `features` entry — otherwise we no-op,
      * matching today's "no live preview for this edit" behavior.
      */
+    const stegaBase =
+      document && schema
+        ? {
+            documentId: document.documentId,
+            model: schema.uid as UID.Schema,
+            kind: schema.kind,
+            locale: document.locale ?? null,
+          }
+        : null;
+
     if (type === 'media') {
       // Relative upload URLs (e.g. `/uploads/a.png`) resolve against the admin
       // origin while the value lives in the admin, but would resolve against
@@ -74,7 +87,12 @@ export function usePreviewInputManager(
       if (isSameShapeMediaChange(prev, value)) {
         sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value: resolvedValue });
       } else if (features?.includes('media')) {
-        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value: resolvedValue });
+        // Stega-encode the outgoing override so click-to-focus on unsaved media
+        // resolves to the same field as saved media (parity with server encoding).
+        const encoded = stegaBase
+          ? encodeMediaOverride(resolvedValue, { ...stegaBase, path: name })
+          : resolvedValue;
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value: encoded });
       }
       routingPrevRef.current = value;
       return;
@@ -84,7 +102,10 @@ export function usePreviewInputManager(
       if (isTextLeafOnlyBlocksChange(prev, value)) {
         sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
       } else if (features?.includes('blocks')) {
-        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value });
+        const encoded = stegaBase
+          ? encodeBlocksOverride(value, { ...stegaBase, path: name })
+          : value;
+        sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_OVERRIDE, { path: name, value: encoded });
       }
       routingPrevRef.current = value;
       return;
@@ -92,7 +113,7 @@ export function usePreviewInputManager(
 
     sendMessage(INTERNAL_EVENTS.STRAPI_FIELD_CHANGE, { field: name, value });
     routingPrevRef.current = value;
-  }, [name, value, iframe, type, features]);
+  }, [name, value, iframe, type, features, document, schema]);
 
   const popoverPrevRef = React.useRef(value);
 

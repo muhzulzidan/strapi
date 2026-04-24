@@ -226,6 +226,79 @@ describe('Content source maps service', () => {
     expect(encoded.documentId).toBe('doc-3');
   });
 
+  /**
+   * Keep in sync with the admin-side override encoder test at
+   * packages/core/content-manager/admin/src/preview/utils/tests/overrideStega.test.ts —
+   * both assert the same literal URLSearchParams string to catch insertion-order drift
+   * that would make click-to-focus resolve different fields for saved vs unsaved content.
+   */
+  test('stable payload order for a media url matches the admin override encoder', () => {
+    const service = createContentSourceMapsService(strapi);
+
+    const encoded = service.encodeField('/uploads/a.png', {
+      documentId: 'doc-1',
+      type: 'media',
+      path: 'cover.url',
+      model: 'api::article.article' as any,
+      kind: 'collectionType',
+      locale: 'en',
+    });
+
+    expect(decodeSourceParams(encoded)?.toString()).toBe(
+      'documentId=doc-1&type=media&path=cover.url&model=api%3A%3Aarticle.article&kind=collectionType&locale=en'
+    );
+  });
+
+  test('stable payload order for a block text leaf matches the admin override encoder', () => {
+    const service = createContentSourceMapsService(strapi);
+
+    const encoded = service.encodeField('hello', {
+      documentId: 'doc-1',
+      type: 'blocks',
+      path: 'body.0.children.0.text',
+      fieldPath: 'body',
+      model: 'api::article.article' as any,
+      kind: 'collectionType',
+      locale: 'en',
+    });
+
+    expect(decodeSourceParams(encoded)?.toString()).toBe(
+      'documentId=doc-1&type=blocks&path=body.0.children.0.text&model=api%3A%3Aarticle.article&kind=collectionType&locale=en&fieldPath=body'
+    );
+  });
+
+  test('omits fieldPath from payload when it equals path', () => {
+    const service = createContentSourceMapsService(strapi);
+
+    const encoded = service.encodeField('hello', {
+      documentId: 'doc-1',
+      type: 'string',
+      path: 'title',
+      model: 'api::article.article' as any,
+      fieldPath: 'title',
+    });
+
+    const params = decodeSourceParams(encoded);
+    expect(params?.get('path')).toBe('title');
+    expect(params?.get('fieldPath')).toBeNull();
+  });
+
+  test('includes fieldPath in payload when it differs from path', () => {
+    const service = createContentSourceMapsService(strapi);
+
+    const encoded = service.encodeField('hello', {
+      documentId: 'doc-1',
+      type: 'blocks',
+      path: 'body.0.children.0.text',
+      model: 'api::article.article' as any,
+      fieldPath: 'body',
+    });
+
+    const params = decodeSourceParams(encoded);
+    expect(params?.get('path')).toBe('body.0.children.0.text');
+    expect(params?.get('fieldPath')).toBe('body');
+  });
+
   test('skips media entries that have no url string', async () => {
     const service = createContentSourceMapsService(strapi);
     const data = {

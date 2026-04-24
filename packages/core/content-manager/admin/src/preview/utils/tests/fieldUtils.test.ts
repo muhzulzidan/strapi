@@ -324,6 +324,7 @@ describe('fieldUtils', () => {
 
       expect(result).toEqual({
         path: 'title',
+        fieldPath: 'title',
         type: 'text',
         documentId: 'doc-1',
         locale: 'en',
@@ -339,12 +340,33 @@ describe('fieldUtils', () => {
 
       expect(result).toEqual({
         path: 'title',
+        fieldPath: 'title',
         type: 'text',
         documentId: 'doc-1',
         locale: null,
         model: 'api::article.article',
         kind: undefined,
       });
+    });
+
+    it('should default fieldPath to path when payload omits it', () => {
+      const strapiSource =
+        'path=components.0.title&type=text&documentId=doc-1&model=api::article.article';
+
+      const result = parseFieldMetaData(strapiSource);
+
+      expect(result?.path).toBe('components.0.title');
+      expect(result?.fieldPath).toBe('components.0.title');
+    });
+
+    it('should preserve fieldPath when payload includes a distinct value', () => {
+      const strapiSource =
+        'path=body.0.children.0.text&fieldPath=body&type=blocks&documentId=doc-1&model=api::article.article';
+
+      const result = parseFieldMetaData(strapiSource);
+
+      expect(result?.path).toBe('body.0.children.0.text');
+      expect(result?.fieldPath).toBe('body');
     });
 
     it('should return null when path is missing', () => {
@@ -399,6 +421,7 @@ describe('fieldUtils', () => {
 
       expect(result).toEqual({
         path: 'components.0.title',
+        fieldPath: 'components.0.title',
         type: 'text',
         documentId: 'doc-1',
         locale: null,
@@ -415,6 +438,7 @@ describe('fieldUtils', () => {
 
       expect(result).toEqual({
         path: 'components.4.relations.2.name',
+        fieldPath: 'components.4.relations.2.name',
         type: 'text',
         documentId: 'doc-1',
         locale: null,

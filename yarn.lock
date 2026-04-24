@@ -8586,6 +8586,7 @@ __metadata:
     "@types/jest": "npm:29.5.2"
     "@types/lodash": "npm:^4.14.191"
     "@types/prismjs": "npm:1.26.5"
+    "@vercel/stega": "npm:0.1.2"
     codemirror5: "npm:codemirror@^5.65.11"
     date-fns: "npm:2.30.0"
     fractional-indexing: "npm:3.2.0"

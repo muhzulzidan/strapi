@@ -48,7 +48,7 @@ interface EncodingInfo {
   schema: Struct.Schema;
 }
 
-type EncodableFieldContentSourceMap = FieldContentSourceMap & {
+type EncodableFieldContentSourceMap = Omit<FieldContentSourceMap, 'fieldPath'> & {
   fieldPath?: string;
 };
 
@@ -95,7 +95,7 @@ const createContentSourceMapsService = (strapi: Core.Strapi) => {
       if (locale) {
         strapiSource.set('locale', locale);
       }
-      if (fieldPath) {
+      if (fieldPath && fieldPath !== path) {
         strapiSource.set('fieldPath', fieldPath);
       }
 

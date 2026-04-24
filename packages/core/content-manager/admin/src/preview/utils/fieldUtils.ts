@@ -126,6 +126,7 @@ export function parseFieldMetaData(strapiSource: string): FieldContentSourceMap 
   const locale = searchParams.get('locale');
   const model = searchParams.get('model');
   const kind = searchParams.get('kind');
+  const fieldPath = searchParams.get('fieldPath');
 
   if (!path || !type || !documentId || !model) {
     return null;
@@ -133,6 +134,7 @@ export function parseFieldMetaData(strapiSource: string): FieldContentSourceMap 
 
   return {
     path,
+    fieldPath: fieldPath ?? path,
     type: type as Schema.Attribute.AnyAttribute['type'],
     documentId,
     locale: locale ?? null,

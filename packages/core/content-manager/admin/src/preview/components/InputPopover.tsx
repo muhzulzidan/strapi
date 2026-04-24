@@ -85,7 +85,7 @@ const InputPopover = ({ documentResponse }: { documentResponse: ReturnType<UseDo
 
         try {
           const attribute = getAttributeSchemaFromPath({
-            path: fieldMetaData.path,
+            path: fieldMetaData.fieldPath,
             components,
             schema,
             document,
@@ -161,8 +161,8 @@ const InputPopover = ({ documentResponse }: { documentResponse: ReturnType<UseDo
                 document={documentResponse}
                 attribute={popoverField.attribute}
                 // TODO: retrieve the proper label from the layout
-                label={popoverField.path}
-                name={popoverField.path}
+                label={popoverField.fieldPath}
+                name={popoverField.fieldPath}
                 type={popoverField.attribute.type}
                 visible={true}
               />

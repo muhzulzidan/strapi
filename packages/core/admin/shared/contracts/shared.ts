@@ -68,6 +68,13 @@ export interface Pagination {
 
 export interface FieldContentSourceMap {
   path: string;
+  /**
+   * Admin-input path to focus on click-to-focus. For most fields this equals `path`. For block
+   * text leaves, `path` carries the full specificity needed for the source map (e.g.
+   * `body.0.children.0.text`) while `fieldPath` points at the ancestor blocks field (e.g. `body`).
+   * Always defined after decode — defaults to `path` when the encoded payload omits it.
+   */
+  fieldPath: string;
   type: Struct.SchemaAttributes[string]['type'];
   documentId: string;
   locale: string | null;
