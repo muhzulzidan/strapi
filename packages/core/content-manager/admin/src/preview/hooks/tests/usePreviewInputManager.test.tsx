@@ -3,8 +3,8 @@
 
 import * as React from 'react';
 
-import { Form } from '@strapi/admin/strapi-admin';
-import { renderHook } from '@tests/utils';
+import { Form, useField } from '@strapi/admin/strapi-admin';
+import { act, renderHook } from '@tests/utils';
 import { vercelStegaDecode } from '@vercel/stega';
 
 import { usePreviewContext } from '../../pages/Preview';
@@ -247,5 +247,249 @@ describe('usePreviewInputManager routing', () => {
     });
 
     expect(postMessage).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Routing matrix regression guard (slice #07).
+ *
+ * These tests assert the exact message (or absence of one) the admin posts for
+ * every combination of field type × diff result × advertised features. The
+ * hybrid routing gate in `usePreviewInputManager` is the protocol-critical
+ * surface the PRD flags as most at risk of regression — silently routing a
+ * safe edit down the structural channel would double-send to v2 consumers and
+ * break v1 consumers.
+ *
+ * Test harness note: `usePreviewInputManager` is paired with `useField` so the
+ * test can drive subsequent edits through `onChange`, exercising the
+ * prev/next diff branches (same-type media swap, blocks leaf-only, feature
+ * re-advertisement). Just mounting with different initial values only covers
+ * the first-render `prev = undefined` case.
+ */
+describe('usePreviewInputManager routing matrix', () => {
+  let postMessage: jest.Mock;
+  let iframeRef: ReturnType<typeof makeIframeRef>;
+
+  const useHarness = (name: string, attr: Schema.Attribute.AnyAttribute) => {
+    usePreviewInputManager(name, attr);
+    const { onChange } = useField(name);
+    return onChange;
+  };
+
+  const mountHarness = (
+    name: string,
+    attr: Schema.Attribute.AnyAttribute,
+    initialValues: Record<string, unknown>
+  ) =>
+    renderHook(() => useHarness(name, attr), {
+      wrapper: createWrapper(initialValues),
+    });
+
+  const edit = (
+    result: { current: (path: string, value: unknown) => void },
+    name: string,
+    value: unknown
+  ) => {
+    act(() => {
+      result.current(name, value);
+    });
+  };
+
+  const messagesForField = (fieldName: string) =>
+    postMessage.mock.calls
+      .map(([message]) => message)
+      .filter((m) => m.payload?.field === fieldName || m.payload?.path === fieldName);
+
+  beforeEach(() => {
+    postMessage = jest.fn();
+    iframeRef = makeIframeRef(postMessage);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /* ---------------------- Mechanism 1 (strapiFieldChange) --------------------- */
+
+  it('same-category media swap (image/png → image/jpeg) routes via strapiFieldChange regardless of advertised features', () => {
+    const cases: ReadonlyArray<readonly string[]> = [
+      ['media'],
+      ['blocks'],
+      [],
+      ['media', 'blocks'],
+    ];
+    for (const features of cases) {
+      mockPreviewContext({ iframeRef, features, setPopoverField: jest.fn() });
+
+      const { result } = mountHarness('hero', attribute('media'), {
+        hero: { url: '/a.png', mime: 'image/png' },
+      });
+      // Clear mount-time traffic so we can assert only the edit's effect.
+      postMessage.mockClear();
+
+      edit(result, 'hero', { url: '/b.jpg', mime: 'image/jpeg' });
+
+      const posted = messagesForField('hero');
+      expect(posted).toHaveLength(1);
+      expect(posted[0].type).toBe('strapiFieldChange');
+      expect(posted[0].payload.value.mime).toBe('image/jpeg');
+    }
+  });
+
+  it('blocks leaf-only edit routes via strapiFieldChange regardless of advertised features', () => {
+    const cases: ReadonlyArray<readonly string[]> = [
+      ['blocks'],
+      ['media'],
+      [],
+      ['media', 'blocks'],
+    ];
+    for (const features of cases) {
+      mockPreviewContext({ iframeRef, features, setPopoverField: jest.fn() });
+
+      const { result } = mountHarness('body', attribute('blocks'), {
+        body: [{ type: 'paragraph', children: [{ text: 'hello' }] }],
+      });
+      postMessage.mockClear();
+
+      edit(result, 'body', [{ type: 'paragraph', children: [{ text: 'hello world' }] }]);
+
+      const posted = messagesForField('body');
+      expect(posted).toHaveLength(1);
+      expect(posted[0].type).toBe('strapiFieldChange');
+    }
+  });
+
+  /* --------------------- Mechanism 2 (strapiFieldOverride) -------------------- */
+
+  it('media cross-type swap (image → video) routes via strapiFieldOverride when media is advertised', () => {
+    mockPreviewContext({ iframeRef, features: ['media'], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('hero', attribute('media'), {
+      hero: { url: '/a.png', mime: 'image/png' },
+    });
+    postMessage.mockClear();
+
+    edit(result, 'hero', { url: '/b.mp4', mime: 'video/mp4' });
+
+    const posted = messagesForField('hero');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].type).toBe('strapiFieldOverride');
+    expect(posted[0].payload.value.mime).toBe('video/mp4');
+  });
+
+  it('media clear (value → null) routes via strapiFieldOverride when media is advertised', () => {
+    mockPreviewContext({ iframeRef, features: ['media'], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('hero', attribute('media'), {
+      hero: { url: '/a.png', mime: 'image/png' },
+    });
+    postMessage.mockClear();
+
+    edit(result, 'hero', null);
+
+    const posted = messagesForField('hero');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].type).toBe('strapiFieldOverride');
+    expect(posted[0].payload.value).toBeNull();
+  });
+
+  it('multi-value media add (array-shape diff) routes via strapiFieldOverride when media is advertised', () => {
+    mockPreviewContext({ iframeRef, features: ['media'], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('gallery', attribute('media'), {
+      gallery: [{ url: '/a.png', mime: 'image/png' }],
+    });
+    postMessage.mockClear();
+
+    edit(result, 'gallery', [
+      { url: '/a.png', mime: 'image/png' },
+      { url: '/b.png', mime: 'image/png' },
+    ]);
+
+    const posted = messagesForField('gallery');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].type).toBe('strapiFieldOverride');
+    expect(posted[0].payload.value).toHaveLength(2);
+  });
+
+  it('blocks structural edit (add block) routes via strapiFieldOverride when blocks is advertised', () => {
+    mockPreviewContext({ iframeRef, features: ['blocks'], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('body', attribute('blocks'), {
+      body: [{ type: 'paragraph', children: [{ text: 'a' }] }],
+    });
+    postMessage.mockClear();
+
+    edit(result, 'body', [
+      { type: 'paragraph', children: [{ text: 'a' }] },
+      { type: 'paragraph', children: [{ text: 'b' }] },
+    ]);
+
+    const posted = messagesForField('body');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].type).toBe('strapiFieldOverride');
+    expect(posted[0].payload.value).toHaveLength(2);
+  });
+
+  /* ----------------------------- No-op branches ----------------------------- */
+
+  it('media cross-type swap is dropped when media is not advertised', () => {
+    mockPreviewContext({ iframeRef, features: [], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('hero', attribute('media'), {
+      hero: { url: '/a.png', mime: 'image/png' },
+    });
+    postMessage.mockClear();
+
+    edit(result, 'hero', { url: '/b.mp4', mime: 'video/mp4' });
+
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  it('blocks structural edit is dropped when blocks is not advertised', () => {
+    mockPreviewContext({ iframeRef, features: ['media'], setPopoverField: jest.fn() });
+
+    const { result } = mountHarness('body', attribute('blocks'), {
+      body: [{ type: 'paragraph', children: [{ text: 'a' }] }],
+    });
+    postMessage.mockClear();
+
+    edit(result, 'body', [
+      { type: 'paragraph', children: [{ text: 'a' }] },
+      { type: 'paragraph', children: [{ text: 'b' }] },
+    ]);
+
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  /* ---------------- Re-handshake with a changed features list ---------------- */
+
+  it('routes against the updated features list after a second handshake reseeds the context', () => {
+    // First handshake advertises nothing; a cross-type swap is dropped.
+    let state: PreviewState = { iframeRef, features: [], setPopoverField: jest.fn() };
+    mockPreviewContext(state);
+
+    const { result, rerender } = mountHarness('hero', attribute('media'), {
+      hero: { url: '/a.png', mime: 'image/png' },
+    });
+    postMessage.mockClear();
+
+    edit(result, 'hero', { url: '/b.mp4', mime: 'video/mp4' });
+    expect(messagesForField('hero')).toHaveLength(0);
+
+    // Second handshake advertises media; a subsequent cross-type swap (video →
+    // image) must now route as an override. New context object re-triggers
+    // the effect's `features` dep.
+    state = { iframeRef, features: ['media'], setPopoverField: jest.fn() };
+    mockPreviewContext(state);
+    rerender();
+    postMessage.mockClear();
+
+    edit(result, 'hero', { url: '/c.png', mime: 'image/png' });
+
+    const posted = messagesForField('hero');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].type).toBe('strapiFieldOverride');
+    expect(posted[0].payload.value.mime).toBe('image/png');
   });
 });

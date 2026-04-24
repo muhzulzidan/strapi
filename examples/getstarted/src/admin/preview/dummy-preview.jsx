@@ -251,7 +251,11 @@ const PreviewComponent = () => {
 
     window.addEventListener('message', handleMessage);
 
-    window.parent?.postMessage({ type: 'previewReady', features: ['media'] }, '*');
+    // Advertise both capabilities so the admin routes structural blocks edits
+    // (add / remove / reorder) via `strapiFieldOverride` — matching the
+    // reference-implementation coverage the PRD calls for. Without 'blocks',
+    // structural block changes would no-op until save.
+    window.parent?.postMessage({ type: 'previewReady', features: ['media', 'blocks'] }, '*');
 
     return () => {
       window.removeEventListener('message', handleMessage);
