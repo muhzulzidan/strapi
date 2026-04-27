@@ -105,6 +105,29 @@ const previewScript = (config: PreviewScriptConfig) => {
   };
 
   /**
+   * Form values for media fields carry the raw Strapi URL (often relative,
+   * e.g. "/uploads/foo.jpg"). The host framework typically renders the
+   * original element with an absolute URL (resolved against the Strapi
+   * backend, not the iframe origin). If we naively set the relative form
+   * value as src, the browser resolves it against the iframe origin and
+   * fails to load. Resolve against the original element's existing src
+   * origin so the swap targets the same backend.
+   */
+  const resolveMediaUrl = (originalEl: HTMLElement, rawUrl: string): string => {
+    if (/^(?:[a-z]+:)?\/\//i.test(rawUrl) || rawUrl.startsWith('data:')) {
+      return rawUrl;
+    }
+    const currentSrc = originalEl.getAttribute('src');
+    if (!currentSrc) return rawUrl;
+    try {
+      const currentUrl = new URL(currentSrc, window.location.href);
+      return new URL(rawUrl, currentUrl.origin).href;
+    } catch {
+      return rawUrl;
+    }
+  };
+
+  /**
    * Get the field path to use for focusing a media field.
    * - For IMG/VIDEO elements: the path was already normalized (stripped of .url) during stega decoding
    * - For non-media elements with model=plugin::upload.file (e.g., caption text): strip the last
@@ -682,6 +705,10 @@ const previewScript = (config: PreviewScriptConfig) => {
         return;
       }
 
+      // Resolve relative form-value URLs against the existing src's origin
+      // so the swap targets the Strapi backend, not the iframe origin.
+      const resolvedUrl = resolveMediaUrl(original, url);
+
       const desiredTag = mime?.startsWith('image/')
         ? 'IMG'
         : mime?.startsWith('video/')
@@ -690,22 +717,29 @@ const previewScript = (config: PreviewScriptConfig) => {
 
       // No mime info — fall back to updating whatever's active
       if (!desiredTag) {
-        el.setAttribute('src', url);
-        el.style.display = '';
+        const active = injection ?? original;
+        if (active.getAttribute('src') !== resolvedUrl) {
+          active.setAttribute('src', resolvedUrl);
+        }
+        active.style.display = '';
         return;
       }
 
       // Original's tag matches: restore it (removing any previous injection)
       if (original.tagName === desiredTag) {
         removeInjection();
-        original.setAttribute('src', url);
+        if (original.getAttribute('src') !== resolvedUrl) {
+          original.setAttribute('src', resolvedUrl);
+        }
         original.style.display = '';
         return;
       }
 
       // Existing injection of the right tag: just update its src
       if (injection && injection.tagName === desiredTag) {
-        injection.setAttribute('src', url);
+        if (injection.getAttribute('src') !== resolvedUrl) {
+          injection.setAttribute('src', resolvedUrl);
+        }
         return;
       }
 
@@ -713,12 +747,16 @@ const previewScript = (config: PreviewScriptConfig) => {
       removeInjection();
 
       const newInjection = document.createElement(desiredTag) as HTMLElement;
-      // Mirror the original's attributes so styling/classes carry over
+      // Mirror the original's attributes so styling/classes carry over.
+      // Skip src/srcset — those carry the *previous* media's URL and would
+      // make the new element try to load it (a video element fed an image
+      // URL renders a permanent "No supported format" error). We set src
+      // explicitly below.
       Array.from(original.attributes).forEach((attr) => {
-        if (attr.name === 'id') return; // avoid duplicate ids while original is still in the tree
+        if (attr.name === 'id' || attr.name === 'src' || attr.name === 'srcset') return;
         newInjection.setAttribute(attr.name, attr.value);
       });
-      newInjection.setAttribute('src', url);
+      newInjection.setAttribute('src', resolvedUrl);
       if (desiredTag === 'VIDEO') {
         newInjection.setAttribute('controls', '');
       }
