@@ -77,6 +77,34 @@ const previewScript = (config: PreviewScriptConfig) => {
   };
 
   /**
+   * When a media field's mime type changes (e.g. image -> video), we can't
+   * swap the rendered DOM tag in place — the host framework (e.g. React)
+   * owns the original element and throws on removeChild if we replaceChild
+   * it. Instead we leave the original where it is, hide it, and insert our
+   * own sibling element of the correct tag. The injection lives outside the
+   * host framework's virtual DOM, so reconciliation never touches it.
+   *
+   * On save the host framework re-renders with the saved data and unmounts
+   * the original, leaving our injection orphaned next to its replacement —
+   * which is what was producing duplicate previews. The childList observer
+   * below uses these maps to drop the injection whenever its associated
+   * original is removed.
+   */
+  const originalToInjection = new Map<HTMLElement, HTMLElement>();
+  const injectionToOriginal = new Map<HTMLElement, HTMLElement>();
+
+  const trackInjection = (original: HTMLElement, injection: HTMLElement) => {
+    originalToInjection.set(original, injection);
+    injectionToOriginal.set(injection, original);
+  };
+
+  const untrackInjection = (injection: HTMLElement) => {
+    const original = injectionToOriginal.get(injection);
+    if (original) originalToInjection.delete(original);
+    injectionToOriginal.delete(injection);
+  };
+
+  /**
    * Get the field path to use for focusing a media field.
    * - For IMG/VIDEO elements: the path was already normalized (stripped of .url) during stega decoding
    * - For non-media elements with model=plugin::upload.file (e.g., caption text): strip the last
@@ -599,6 +627,20 @@ const previewScript = (config: PreviewScriptConfig) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
               highlightManager.removeHighlightForElement(element);
+
+              // If a tracked media original (or its ancestor) was removed —
+              // typically when the host framework re-renders after save and
+              // unmounts the previous element — drop our matching injection
+              // so we don't end up with duplicate previews next to the new one.
+              originalToInjection.forEach((injection, original) => {
+                if (element === original || element.contains(original)) {
+                  untrackInjection(injection);
+                  injection.remove();
+                } else if (element === injection || element.contains(injection)) {
+                  // Our injection itself was removed (e.g. parent unmounted)
+                  untrackInjection(injection);
+                }
+              });
             }
           });
         }
@@ -620,6 +662,76 @@ const previewScript = (config: PreviewScriptConfig) => {
   };
 
   const setupEventHandlers = (highlightManager: HighlightManager) => {
+    const setMediaElement = (el: HTMLElement, url: string | null, mime?: string) => {
+      const original = injectionToOriginal.get(el) ?? el;
+      const injection = originalToInjection.get(original) ?? null;
+
+      const removeInjection = () => {
+        if (!injection) return;
+        // Move the source attribute back to the original so highlights track it again
+        const sourceAttr = injection.getAttribute(SOURCE_ATTRIBUTE);
+        if (sourceAttr) original.setAttribute(SOURCE_ATTRIBUTE, sourceAttr);
+        untrackInjection(injection);
+        injection.remove();
+      };
+
+      if (!url) {
+        removeInjection();
+        original.style.display = 'none';
+        original.removeAttribute('src');
+        return;
+      }
+
+      const desiredTag = mime?.startsWith('image/')
+        ? 'IMG'
+        : mime?.startsWith('video/')
+          ? 'VIDEO'
+          : null;
+
+      // No mime info — fall back to updating whatever's active
+      if (!desiredTag) {
+        el.setAttribute('src', url);
+        el.style.display = '';
+        return;
+      }
+
+      // Original's tag matches: restore it (removing any previous injection)
+      if (original.tagName === desiredTag) {
+        removeInjection();
+        original.setAttribute('src', url);
+        original.style.display = '';
+        return;
+      }
+
+      // Existing injection of the right tag: just update its src
+      if (injection && injection.tagName === desiredTag) {
+        injection.setAttribute('src', url);
+        return;
+      }
+
+      // Need a fresh injection of the correct tag
+      removeInjection();
+
+      const newInjection = document.createElement(desiredTag) as HTMLElement;
+      // Mirror the original's attributes so styling/classes carry over
+      Array.from(original.attributes).forEach((attr) => {
+        if (attr.name === 'id') return; // avoid duplicate ids while original is still in the tree
+        newInjection.setAttribute(attr.name, attr.value);
+      });
+      newInjection.setAttribute('src', url);
+      if (desiredTag === 'VIDEO') {
+        newInjection.setAttribute('controls', '');
+      }
+      newInjection.style.cssText = original.style.cssText;
+      newInjection.style.display = '';
+
+      // Hide the host-framework-managed original and let highlights track our injection
+      original.style.display = 'none';
+      original.removeAttribute(SOURCE_ATTRIBUTE);
+      original.parentNode?.insertBefore(newInjection, original.nextSibling);
+      trackInjection(original, newInjection);
+    };
+
     const handleMessage = (event: MessageEvent) => {
       if (!event.data?.type) return;
 
@@ -630,65 +742,13 @@ const previewScript = (config: PreviewScriptConfig) => {
 
         getElementsByPath(field).forEach((element) => {
           if (element instanceof HTMLElement) {
-            // For img/video elements, update the src attribute instead of text content
             if (isMediaElement(element)) {
-              // Value can be a media object with url property, or a string URL
               const url = typeof value === 'object' && value !== null ? value.url : value;
-              const mime = typeof value === 'object' && value !== null ? value.mime : undefined;
-
-              if (url) {
-                // Check if the media type matches the element type
-                const isImage = element.tagName === 'IMG';
-                const isVideo = element.tagName === 'VIDEO';
-                const isImageMime = mime?.startsWith('image/');
-                const isVideoMime = mime?.startsWith('video/');
-
-                // Check if we need to replace the element due to media type mismatch
-                const needsReplacement =
-                  mime && ((isImage && isVideoMime) || (isVideo && isImageMime));
-
-                if (needsReplacement) {
-                  // Create a new element of the correct type
-                  const newTagName = isImageMime ? 'IMG' : 'VIDEO';
-                  const newElement = document.createElement(newTagName);
-
-                  // Copy all attributes from the old element
-                  Array.from(element.attributes).forEach((attr) => {
-                    newElement.setAttribute(attr.name, attr.value);
-                  });
-
-                  // Set the new src
-                  newElement.setAttribute('src', url);
-
-                  // Copy inline styles
-                  newElement.style.cssText = element.style.cssText;
-                  newElement.style.display = '';
-
-                  // For video elements, add common attributes
-                  if (newTagName === 'VIDEO') {
-                    newElement.setAttribute('controls', '');
-                  }
-
-                  // Replace the old element with the new one
-                  element.parentNode?.replaceChild(newElement, element);
-                } else {
-                  // Same media type, just update the src
-                  const shouldShow = !mime || (isImage && isImageMime) || (isVideo && isVideoMime);
-
-                  if (shouldShow) {
-                    element.setAttribute('src', url);
-                    element.style.display = '';
-                  } else {
-                    // Hide if no mime info and types don't match (shouldn't happen)
-                    element.style.display = 'none';
-                    element.removeAttribute('src');
-                  }
-                }
-              } else {
-                // Hide element when media is deleted/empty instead of showing broken media
-                element.style.display = 'none';
-                element.removeAttribute('src');
-              }
+              const mime =
+                typeof value === 'object' && value !== null
+                  ? (value.mime as string | undefined)
+                  : undefined;
+              setMediaElement(element, url || null, mime);
             } else {
               element.textContent = value || '';
             }
