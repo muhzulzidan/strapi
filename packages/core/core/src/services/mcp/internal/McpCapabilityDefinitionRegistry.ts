@@ -19,6 +19,15 @@ export class McpCapabilityDefinitionRegistry<
         `[MCP] ${this.capability} with name "${definition.name}" is already registered. Names must be unique.`
       );
     }
+
+    if (definition.devModeOnly !== true) {
+      if (definition.auth === undefined || definition.auth.action === '') {
+        throw new Error(
+          `[MCP] ${this.capability} with name "${definition.name}" must declare auth action or be devModeOnly.`
+        );
+      }
+    }
+
     this.#definitions.set(definition.name, definition);
   }
 

@@ -2,7 +2,7 @@ import type { Core } from '@strapi/types';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { McpConfiguration } from '../../internal/McpConfiguration';
 import { McpSessionManager } from '../../internal/McpSessionManager';
-import { McpSession } from '../../session';
+import { McpSession } from '../../internal/McpSession';
 import { createDeleteHandler } from '../handleDelete';
 import type { McpHandlerDependencies } from '../types';
 
@@ -14,6 +14,7 @@ describe('handleDelete', () => {
   let mockStrapi: Partial<Core.Strapi>;
   let mockConfig: McpConfiguration;
   let mockSessionManager: McpSessionManager;
+  let mockAuthenticationStrategy: McpHandlerDependencies['authenticationStrategy'];
   let logErrorSpy: jest.Mock;
 
   beforeEach(() => {
@@ -28,11 +29,19 @@ describe('handleDelete', () => {
     };
     mockConfig = new McpConfiguration(mockStrapi as Core.Strapi);
     mockSessionManager = new McpSessionManager(mockConfig, mockStrapi as Core.Strapi);
+    mockAuthenticationStrategy = {
+      authenticate: jest.fn().mockResolvedValue({
+        authenticated: true,
+        credentials: { id: 1 },
+        ability: { can: jest.fn(() => true) },
+      }),
+    };
   });
 
   test('should return error when session ID is missing', async () => {
     const deps: McpHandlerDependencies = {
       strapi: mockStrapi as Core.Strapi,
+      authenticationStrategy: mockAuthenticationStrategy,
       sessionManager: mockSessionManager,
       config: mockConfig,
       createServerWithRegistries: jest.fn(),
@@ -67,6 +76,7 @@ describe('handleDelete', () => {
   test('should return error when session is invalid', async () => {
     const deps: McpHandlerDependencies = {
       strapi: mockStrapi as Core.Strapi,
+      authenticationStrategy: mockAuthenticationStrategy,
       sessionManager: mockSessionManager,
       config: mockConfig,
       createServerWithRegistries: jest.fn(),
@@ -106,6 +116,7 @@ describe('handleDelete', () => {
 
     const mockSession = {
       lastActivity: Date.now(),
+      adminTokenId: 1,
       transport: {
         handleRequest: handleRequestSpy,
       },
@@ -115,6 +126,7 @@ describe('handleDelete', () => {
 
     const deps: McpHandlerDependencies = {
       strapi: mockStrapi as Core.Strapi,
+      authenticationStrategy: mockAuthenticationStrategy,
       sessionManager: mockSessionManager,
       config: mockConfig,
       createServerWithRegistries: jest.fn(),
@@ -150,6 +162,7 @@ describe('handleDelete', () => {
 
     const mockSession = {
       lastActivity: Date.now(),
+      adminTokenId: 1,
       transport: {
         handleRequest: handleRequestSpy,
       },
@@ -159,6 +172,7 @@ describe('handleDelete', () => {
 
     const deps: McpHandlerDependencies = {
       strapi: mockStrapi as Core.Strapi,
+      authenticationStrategy: mockAuthenticationStrategy,
       sessionManager: mockSessionManager,
       config: mockConfig,
       createServerWithRegistries: jest.fn(),

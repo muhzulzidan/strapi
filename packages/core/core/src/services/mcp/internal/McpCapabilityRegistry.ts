@@ -58,13 +58,14 @@ export class McpCapabilityRegistryBase<
         name: string;
         status: 'enabled' | 'disabled' | 'defined' | 'undefined';
         devModeOnly: boolean;
+        auth: Definition['auth'] | undefined;
       }[]
     >((acc, curr) => {
       const status = this.status(curr.name);
       if (filter?.status !== undefined && !filter.status.includes(status)) {
         return acc;
       }
-      acc.push({ name: curr.name, status, devModeOnly: curr.devModeOnly });
+      acc.push({ name: curr.name, status, devModeOnly: !!curr.devModeOnly, auth: curr.auth });
       return acc;
     }, []);
   }

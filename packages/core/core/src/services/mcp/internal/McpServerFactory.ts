@@ -4,6 +4,7 @@ import type { Core, Modules } from '@strapi/types';
 import { McpPromptRegistry } from '../prompt-registry';
 import { McpResourceRegistry } from '../resource-registry';
 import { McpToolRegistry } from '../tool-registry';
+import type { McpAdminTokenAbility } from '../authentication';
 import { McpCapabilityDefinitionRegistry } from './McpCapabilityDefinitionRegistry';
 
 export type McpCapabilityDefinitions = {
@@ -27,12 +28,30 @@ export type CreateMcpServerWithRegistriesParams = {
   strapi: Core.Strapi;
   definitions: McpCapabilityDefinitions;
   isDevMode: boolean;
+  ability: McpAdminTokenAbility;
+};
+
+const canUseCapability = (
+  ability: McpAdminTokenAbility,
+  definition: Modules.MCP.McpCapabilityDefinition,
+  isDevMode: boolean
+): boolean => {
+  if (definition.devModeOnly === true) {
+    return isDevMode === true;
+  }
+
+  if (definition.auth.subject !== undefined) {
+    return ability.can(definition.auth.action, definition.auth.subject);
+  }
+
+  return ability.can(definition.auth.action);
 };
 
 export const createMcpServerWithRegistries = ({
   strapi,
   definitions,
   isDevMode,
+  ability,
 }: CreateMcpServerWithRegistriesParams): McpServerWithRegistries => {
   const capabilities: {
     logging?: Record<string, unknown>;
@@ -81,26 +100,24 @@ export const createMcpServerWithRegistries = ({
   promptRegistry.bind(mcpServer);
   resourceRegistry.bind(mcpServer);
 
-  // TODO @Nico: Manage Permissions from Auth
-
-  // Enable devModeOnly capabilities when running in dev mode
-  if (isDevMode === true) {
-    toolRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
-      if (cap.devModeOnly === true) {
-        toolRegistry.enable(cap.name);
-      }
-    });
-    promptRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
-      if (cap.devModeOnly === true) {
-        promptRegistry.enable(cap.name);
-      }
-    });
-    resourceRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
-      if (cap.devModeOnly === true) {
-        resourceRegistry.enable(cap.name);
-      }
-    });
-  }
+  toolRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
+    const definition = definitions.tools.get(cap.name);
+    if (definition !== undefined && canUseCapability(ability, definition, isDevMode) === true) {
+      toolRegistry.enable(cap.name);
+    }
+  });
+  promptRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
+    const definition = definitions.prompts.get(cap.name);
+    if (definition !== undefined && canUseCapability(ability, definition, isDevMode) === true) {
+      promptRegistry.enable(cap.name);
+    }
+  });
+  resourceRegistry.list({ filter: { status: ['disabled'] } }).forEach((cap) => {
+    const definition = definitions.resources.get(cap.name);
+    if (definition !== undefined && canUseCapability(ability, definition, isDevMode) === true) {
+      resourceRegistry.enable(cap.name);
+    }
+  });
 
   return {
     mcpServer,

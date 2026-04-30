@@ -3,14 +3,20 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Core } from '@strapi/types';
 import { randomUUID } from 'node:crypto';
 import { extractSessionId } from '../internal/extractSessionId';
-import { McpSession } from '../session';
+import { McpSession } from '../internal/McpSession';
 import { sendJsonRpcError } from '../utils/sendJsonRpcError';
 import { withTimeout } from '../utils/withTimeout';
 import type { McpHandlerDependencies } from './types';
 
 export const createPostHandler = (deps: McpHandlerDependencies): Core.MiddlewareHandler => {
-  const { strapi, sessionManager, config, createServerWithRegistries, capabilityDefinitions } =
-    deps;
+  const {
+    strapi,
+    authenticationStrategy,
+    sessionManager,
+    config,
+    createServerWithRegistries,
+    capabilityDefinitions,
+  } = deps;
 
   return async (ctx) => {
     const req = ctx.req;
@@ -18,6 +24,12 @@ export const createPostHandler = (deps: McpHandlerDependencies): Core.Middleware
     const sessionId = extractSessionId(req);
 
     try {
+      const authResult = await authenticationStrategy.authenticate(ctx);
+      if (authResult.authenticated === false) {
+        sendJsonRpcError(res, 401, -32000, 'Unauthorized');
+        return;
+      }
+
       let transport: StreamableHTTPServerTransport;
 
       // Existing session handling
@@ -25,6 +37,10 @@ export const createPostHandler = (deps: McpHandlerDependencies): Core.Middleware
         const existingSession = sessionManager.get(sessionId);
         if (existingSession === undefined) {
           sendJsonRpcError(res, 400, -32000, 'Invalid session');
+          return;
+        }
+        if (String(existingSession.adminTokenId) !== String(authResult.credentials.id)) {
+          sendJsonRpcError(res, 403, -32000, 'Token mismatch for session');
           return;
         }
         existingSession.updateActivity();
@@ -50,6 +66,7 @@ export const createPostHandler = (deps: McpHandlerDependencies): Core.Middleware
           strapi,
           definitions: capabilityDefinitions,
           isDevMode: config.isDevMode(),
+          ability: authResult.ability,
         });
 
         transport = new StreamableHTTPServerTransport({
@@ -63,6 +80,7 @@ export const createPostHandler = (deps: McpHandlerDependencies): Core.Middleware
                 toolRegistry: registries.toolRegistry,
                 promptRegistry: registries.promptRegistry,
                 resourceRegistry: registries.resourceRegistry,
+                adminTokenId: authResult.credentials.id,
               })
             );
             strapi.log.info('[MCP] Session initialized', { sessionId: id });

@@ -2,7 +2,7 @@ import type { Core } from '@strapi/types';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { McpConfiguration } from '../../internal/McpConfiguration';
 import { McpSessionManager } from '../../internal/McpSessionManager';
-import { McpSession } from '../../session';
+import { McpSession } from '../../internal/McpSession';
 import { createPostHandler } from '../handlePost';
 import type { McpHandlerDependencies } from '../types';
 
@@ -18,6 +18,7 @@ describe('handlePost', () => {
   let mockStrapi: Partial<Core.Strapi>;
   let mockConfig: McpConfiguration;
   let mockSessionManager: McpSessionManager;
+  let mockAuthenticationStrategy: McpHandlerDependencies['authenticationStrategy'];
   let logErrorSpy: jest.Mock;
   let logInfoSpy: jest.Mock;
 
@@ -35,6 +36,13 @@ describe('handlePost', () => {
     };
     mockConfig = new McpConfiguration(mockStrapi as Core.Strapi);
     mockSessionManager = new McpSessionManager(mockConfig, mockStrapi as Core.Strapi);
+    mockAuthenticationStrategy = {
+      authenticate: jest.fn().mockResolvedValue({
+        authenticated: true,
+        credentials: { id: 1 },
+        ability: { can: jest.fn(() => true) },
+      }),
+    };
   });
 
   describe('existing session', () => {
@@ -46,6 +54,7 @@ describe('handlePost', () => {
       const mockSession = {
         lastActivity: Date.now(),
         updateActivity: updateActivitySpy,
+        adminTokenId: 1,
         transport: {
           handleRequest: handleRequestSpy,
         },
@@ -55,6 +64,7 @@ describe('handlePost', () => {
 
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries: jest.fn(),
@@ -91,6 +101,7 @@ describe('handlePost', () => {
     test('should return error when session is invalid', async () => {
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries: jest.fn(),
@@ -163,6 +174,7 @@ describe('handlePost', () => {
 
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries,
@@ -198,6 +210,7 @@ describe('handlePost', () => {
         strapi: mockStrapi,
         definitions: deps.capabilityDefinitions,
         isDevMode: mockConfig.isDevMode(),
+        ability: expect.objectContaining({ can: expect.any(Function) }),
       });
       expect(mockMcpServer.connect).toHaveBeenCalledWith(mockTransport);
       expect(mockTransport.handleRequest).toHaveBeenCalledWith(req, res, requestBody);
@@ -214,6 +227,7 @@ describe('handlePost', () => {
 
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries: jest.fn(),
@@ -258,6 +272,7 @@ describe('handlePost', () => {
       const mockSession = {
         lastActivity: Date.now(),
         updateActivity: jest.fn(),
+        adminTokenId: 1,
         transport: {
           handleRequest: handleRequestSpy,
         },
@@ -267,6 +282,7 @@ describe('handlePost', () => {
 
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries: jest.fn(),
@@ -313,6 +329,7 @@ describe('handlePost', () => {
       const mockSession = {
         lastActivity: Date.now(),
         updateActivity: jest.fn(),
+        adminTokenId: 1,
         transport: {
           handleRequest: handleRequestSpy,
         },
@@ -322,6 +339,7 @@ describe('handlePost', () => {
 
       const deps: McpHandlerDependencies = {
         strapi: mockStrapi as Core.Strapi,
+        authenticationStrategy: mockAuthenticationStrategy,
         sessionManager: mockSessionManager,
         config: mockConfig,
         createServerWithRegistries: jest.fn(),

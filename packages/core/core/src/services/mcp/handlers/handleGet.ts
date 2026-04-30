@@ -1,16 +1,21 @@
 import type { Core } from '@strapi/types';
 import { extractSessionId } from '../internal/extractSessionId';
 import { sendJsonRpcError } from '../utils/sendJsonRpcError';
-import { withTimeout } from '../utils/withTimeout';
 import type { McpHandlerDependencies } from './types';
 
 export const createGetHandler = (deps: McpHandlerDependencies): Core.MiddlewareHandler => {
-  const { strapi, sessionManager, config } = deps;
+  const { strapi, authenticationStrategy, sessionManager } = deps;
 
   return async (ctx) => {
     const req = ctx.req;
     const res = ctx.res;
     const sessionId = extractSessionId(req);
+
+    const authResult = await authenticationStrategy.authenticate(ctx);
+    if (authResult.authenticated === false) {
+      sendJsonRpcError(res, 401, -32000, 'Unauthorized');
+      return;
+    }
 
     if (sessionId === undefined) {
       sendJsonRpcError(res, 400, -32000, 'Session ID required');
@@ -22,6 +27,10 @@ export const createGetHandler = (deps: McpHandlerDependencies): Core.MiddlewareH
       sendJsonRpcError(res, 400, -32000, 'Invalid session');
       return;
     }
+    if (String(session.adminTokenId) !== String(authResult.credentials.id)) {
+      sendJsonRpcError(res, 403, -32000, 'Token mismatch for session');
+      return;
+    }
 
     // Update activity to prevent timeout during active SSE/long-polling connections.
     // GET requests in MCP context represent active client engagement waiting for
@@ -29,11 +38,7 @@ export const createGetHandler = (deps: McpHandlerDependencies): Core.MiddlewareH
     session.updateActivity();
 
     try {
-      await withTimeout(
-        session.transport.handleRequest(req, res, null),
-        config.requestTimeoutMs,
-        'transport.handleRequest'
-      );
+      await session.transport.handleRequest(req, res, null);
     } catch (error) {
       strapi.log.error('[MCP] Error handling GET request', {
         error: error instanceof Error ? error.message : 'Unknown error',
