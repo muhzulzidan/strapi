@@ -16,8 +16,9 @@
       "required": true
     },
     "slug": {
-      "type": "string",
-      "unique": true
+      "type": "uid",
+      "targetField": "title",
+      "configurable": true
     },
     "date": {
       "type": "datetime",

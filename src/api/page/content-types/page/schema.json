@@ -15,7 +15,9 @@
       "type": "string"
     },
     "slug": {
-      "type": "string"
+      "type": "uid",
+      "targetField": "title",
+      "configurable": true
     },
     "seoMeta": {
       "type": "relation",

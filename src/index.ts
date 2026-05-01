@@ -1,6 +1,60 @@
 import type { Core } from '@strapi/strapi';
 
 const CONTENT_VERSION_UID = 'api::content-version.content-version';
+const AUTO_SLUG_UIDS = new Set([
+  'api::news.news',
+  'api::page.page',
+  'api::events.events',
+  'api::summits.summits',
+  'api::job.job',
+  'api::legal-document.legal-document',
+]);
+
+const slugify = (value: string): string => {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
+const applyAutoSlugToData = (uid: string, data: Record<string, any> | undefined): void => {
+  if (!AUTO_SLUG_UIDS.has(uid) || !data) {
+    return;
+  }
+
+  const hasSlug = typeof data.slug === 'string' && data.slug.trim().length > 0;
+  const hasTitle = typeof data.title === 'string' && data.title.trim().length > 0;
+
+  if (hasSlug || !hasTitle) {
+    return;
+  }
+
+  const generatedSlug = slugify(data.title);
+  if (generatedSlug) {
+    data.slug = generatedSlug;
+  }
+};
+
+const maybeApplyAutoSlug = (uid: string, opts: any): any => {
+  if (!AUTO_SLUG_UIDS.has(uid)) {
+    return opts;
+  }
+
+  const data = opts?.data;
+  if (!data) {
+    return opts;
+  }
+
+  const nextData = { ...data };
+  applyAutoSlugToData(uid, nextData);
+
+  return {
+    ...opts,
+    data: nextData,
+  };
+};
 
 // Store reference to original methods
 let originalCreate: any = null;
@@ -19,8 +73,10 @@ export default {
     originalUpdate = strapi.entityService.update;
 
     strapi.entityService.create = async function (uid: string, opts: any): Promise<any> {
+      const createOpts = maybeApplyAutoSlug(uid, opts);
+
       // Call original create
-      const result = await originalCreate.call(this, uid, opts);
+      const result = await originalCreate.call(this, uid, createOpts);
 
       // Skip versioning for content-version itself and core models
       if (
@@ -33,7 +89,7 @@ export default {
 
       // Record version for create action
       try {
-        const locale = opts?.data?.locale || 'en';
+        const locale = createOpts?.data?.locale || 'en';
         const service = (strapi.service('api::content-version.content-version-tracking') as any);
         if (service && result) {
           // Use documentId (Strapi v5 standard) or fallback to id
@@ -58,6 +114,8 @@ export default {
       id: string | number,
       opts: any
     ): Promise<any> {
+      const updateOpts = maybeApplyAutoSlug(uid, opts);
+
       // Get previous state before updating using the original method before we replaced it
       let previousData: Record<string, any> = {};
       try {
@@ -72,7 +130,7 @@ export default {
       }
 
       // Call original update
-      const result = await originalUpdate.call(this, uid, id, opts);
+      const result = await originalUpdate.call(this, uid, id, updateOpts);
 
       // Skip versioning for content-version itself and core models
       if (
@@ -85,7 +143,7 @@ export default {
 
       // Record version for update action
       try {
-        const locale = opts?.data?.locale || (previousData as any)?.locale || 'en';
+        const locale = updateOpts?.data?.locale || (previousData as any)?.locale || 'en';
         const service = (strapi.service('api::content-version.content-version-tracking') as any);
         if (service && result) {
           // Determine action type based on publish state
@@ -101,7 +159,7 @@ export default {
 
           const changedFields = service.calculateChangedFields(
             previousData,
-            opts?.data || {}
+            updateOpts?.data || {}
           );
 
           // Use documentId (Strapi v5 standard) or fallback to id
@@ -131,6 +189,16 @@ export default {
    * run jobs, or perform some special logic.
    */
   bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    strapi.db.lifecycles.subscribe({
+      models: Array.from(AUTO_SLUG_UIDS),
+      beforeCreate(event) {
+        applyAutoSlugToData(event.model.uid, event.params.data as Record<string, any>);
+      },
+      beforeUpdate(event) {
+        applyAutoSlugToData(event.model.uid, event.params.data as Record<string, any>);
+      },
+    });
+
     console.log('✅ Content versioning system initialized');
   },
 };
