@@ -3,7 +3,18 @@ import type { Core } from '@strapi/strapi';
 const config: Core.Config.Middlewares = [
   'strapi::logger',
   'strapi::errors',
-  'strapi::security',
+  {
+    name: 'strapi::security',
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'frame-ancestors': ["'self'"],
+        },
+      },
+      frameguard: false, // disable X-Frame-Options so CSP frame-ancestors controls it
+    },
+  },
   'strapi::cors',
   'strapi::poweredBy',
   'strapi::query',

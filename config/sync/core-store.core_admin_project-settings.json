@@ -1,0 +1,28 @@
+{
+  "key": "core_admin_project-settings",
+  "value": {
+    "menuLogo": {
+      "name": "Untitled design (4).png",
+      "hash": "Untitled_design_4_e40ace45df",
+      "url": "/uploads/Untitled_design_4_e40ace45df.png",
+      "width": 540,
+      "height": 540,
+      "ext": ".png",
+      "size": 80,
+      "provider": "local"
+    },
+    "authLogo": {
+      "name": "Untitled design (4).png",
+      "hash": "Untitled_design_4_6127da3e22",
+      "url": "/uploads/Untitled_design_4_6127da3e22.png",
+      "width": 540,
+      "height": 540,
+      "ext": ".png",
+      "size": 80,
+      "provider": "local"
+    }
+  },
+  "type": "object",
+  "environment": null,
+  "tag": null
+}

@@ -92,3 +92,137 @@ Answer to your question about where:
 If you want, I can run the real CMA sync command right now once you provide the Contentful management token and space id.
 
 Made changes.
+
+## VPS Assessment - 2026-05-01
+
+Current server context:
+
+- Host type: KVM VPS on Ubuntu 24.04.3 LTS
+- CPU: 2 vCPU
+- Memory: 7.8 GiB RAM, 4 GiB swap
+- Disk: 96 GiB total, 38 GiB free
+- App runtime: PM2 running `tasfrl-cms` from `/srv/cms`
+- Front door: nginx on ports 80 and 443
+
+Assessment:
+
+- This VPS is good enough for the current Strapi setup.
+- No purchase is required right now.
+- The current server shape is reasonable for a single production Strapi app with moderate traffic.
+- Keep using the VPS for now and avoid paid add-ons until there is a real scaling or reliability need.
+
+Do not buy yet:
+
+- Strapi Cloud
+- Managed observability
+- Paid error monitoring
+- Paid CDN or object storage unless uploads/media traffic starts becoming a bottleneck
+- Bigger VPS unless CPU, memory, or response times become a recurring issue
+
+Use the current stack for now:
+
+- nginx + PM2 on the VPS
+- Current Postgres setup
+- Strapi upgrade flow via `npm run upgrade:dry` then `npm run upgrade`
+- Optional free-tier tools only if needed later
+
+No-cost improvements to do first:
+
+- Restrict direct access to Strapi on port 1337 if nginx is the public entry point
+- Restrict direct access to Postgres on port 5432 unless it must be public
+- Add regular database backups
+- Add basic uptime/error monitoring before paying for anything
+
+Revisit buying only if one of these happens:
+
+- Sustained high CPU or memory pressure
+- Swap usage keeps growing during normal traffic
+- Media uploads/storage needs outgrow the VPS disk
+- You need staging, failover, or team-level observability
+- Deployment and rollback operations become too risky or too manual
+
+## Port Audit - 2026-05-01
+
+Completed lock-downs:
+
+- Strapi CMS is now bound to `127.0.0.1:1337`
+- The Strapi Postgres publish is now bound to `127.0.0.1:5432`
+- nginx remains the public entry point for `cms.tasfrl.org`
+- PM2 config was corrected so future restarts keep the CMS private and use `npm run start` in production
+
+Files changed for the lock-down:
+
+- `/srv/cms/.env`
+- `/srv/cms/ecosystem.config.cjs`
+- `/srv/supabase/docker-compose.yml`
+
+Validation completed:
+
+- `ss` shows `127.0.0.1:1337` for the CMS
+- `ss` shows `127.0.0.1:5432` for Postgres
+- Local request to `127.0.0.1:1337/admin` returns `200`
+- nginx request for `cms.tasfrl.org` returns redirect response as expected
+
+Remaining public ports on this VPS:
+
+- `22`, `80`, `443` are expected
+- `54321`, `54322`, `54324`, `54327` are still published by another Docker stack on this server
+
+Important note:
+
+- Those remaining public ports appear to belong to a different application stack, not this CMS
+- They should be audited separately before changing them, to avoid breaking unrelated services
+
+## Backup Checklist
+
+Daily:
+
+- Dump the Strapi database
+- Archive `/srv/cms/public/uploads`
+- Store backups outside the app directory, for example under `/srv/backups/cms`
+- Keep at least 7 daily backups
+
+Weekly:
+
+- Keep 4 weekly backup copies
+- Verify one recent backup can actually be extracted and read
+- Confirm disk usage still leaves safe headroom after backups
+
+Before every upgrade or schema sync:
+
+- Confirm `git status` is clean or committed
+- Create a git backup branch
+- Dump the database before running `npm run upgrade`
+- Archive uploaded media before changing schemas or content models
+
+Simple commands:
+
+- Database backup: `docker exec supabase-db pg_dump -U postgres strapi > /srv/backups/cms/strapi-$(date +%F).sql`
+- Uploads backup: `tar -czf /srv/backups/cms/uploads-$(date +%F).tgz -C /srv/cms public/uploads`
+- Restore test target: use a temporary database or non-production environment first
+
+## Monitoring Checklist
+
+Daily quick check:
+
+- `pm2 status`
+- `pm2 logs tasfrl-cms --lines 100`
+- `df -h`
+- `free -h`
+- `uptime`
+- `curl -I https://cms.tasfrl.org`
+
+Weekly check:
+
+- `ss -ltnp | rg ':22|:80|:443|:1337|:5432|:54321|:54322|:54324|:54327'`
+- Review nginx and PM2 logs for repeated 5xx or restart loops
+- Check backup files exist and are recent
+- Check swap is not steadily increasing under normal load
+
+Escalate if any of these happen:
+
+- CMS process restarts repeatedly
+- Disk free space drops below 15 GiB
+- Memory pressure forces heavy swap usage during ordinary traffic
+- Response times become consistently slow
+- Unexpected public ports appear after Docker or deployment changes

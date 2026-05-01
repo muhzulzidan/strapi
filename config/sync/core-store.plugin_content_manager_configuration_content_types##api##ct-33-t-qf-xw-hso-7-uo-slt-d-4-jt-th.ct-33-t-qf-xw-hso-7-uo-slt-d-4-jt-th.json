@@ -1,0 +1,453 @@
+{
+  "key": "plugin_content_manager_configuration_content_types::api::ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-th.ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-th",
+  "value": {
+    "settings": {
+      "bulkable": true,
+      "filterable": true,
+      "searchable": true,
+      "pageSize": 10,
+      "relationOpenMode": "modal",
+      "mainField": "title",
+      "defaultSortBy": "title",
+      "defaultSortOrder": "ASC"
+    },
+    "metadatas": {
+      "id": {
+        "edit": {},
+        "list": {
+          "label": "id",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "title": {
+        "edit": {
+          "label": "title",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "title",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "slug": {
+        "edit": {
+          "label": "slug",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "slug",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "shortDescription": {
+        "edit": {
+          "label": "shortDescription",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "shortDescription",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "icon": {
+        "edit": {
+          "label": "icon",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "icon",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "heroTitle": {
+        "edit": {
+          "label": "heroTitle",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "heroTitle",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "heroSubtitle": {
+        "edit": {
+          "label": "heroSubtitle",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "heroSubtitle",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "heroBackgroundImage": {
+        "edit": {
+          "label": "heroBackgroundImage",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "heroBackgroundImage",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "heroForegroundImage": {
+        "edit": {
+          "label": "heroForegroundImage",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "heroForegroundImage",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "ctaButton": {
+        "edit": {
+          "label": "ctaButton",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true,
+          "mainField": "buttonText"
+        },
+        "list": {
+          "label": "ctaButton",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "overviewTitle": {
+        "edit": {
+          "label": "overviewTitle",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "overviewTitle",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "overviewDescription": {
+        "edit": {
+          "label": "overviewDescription",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "overviewDescription",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "includedItems": {
+        "edit": {
+          "label": "includedItems",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "includedItems",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "galleryImages": {
+        "edit": {
+          "label": "galleryImages",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "galleryImages",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "galleryHighlightText": {
+        "edit": {
+          "label": "galleryHighlightText",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "galleryHighlightText",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "featured": {
+        "edit": {
+          "label": "featured",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "featured",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "order": {
+        "edit": {
+          "label": "order",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "order",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "seoMeta": {
+        "edit": {
+          "label": "seoMeta",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true,
+          "mainField": "title"
+        },
+        "list": {
+          "label": "seoMeta",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "howItWorksSteps": {
+        "edit": {
+          "label": "howItWorksSteps",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "howItWorksSteps",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "createdAt": {
+        "edit": {
+          "label": "createdAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "createdAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedAt": {
+        "edit": {
+          "label": "updatedAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "updatedAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdBy": {
+        "edit": {
+          "label": "createdBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "createdBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedBy": {
+        "edit": {
+          "label": "updatedBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "updatedBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "documentId": {
+        "edit": {},
+        "list": {
+          "label": "documentId",
+          "searchable": true,
+          "sortable": true
+        }
+      }
+    },
+    "layouts": {
+      "list": [
+        "id",
+        "title",
+        "slug",
+        "shortDescription"
+      ],
+      "edit": [
+        [
+          {
+            "name": "title",
+            "size": 6
+          },
+          {
+            "name": "slug",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "shortDescription",
+            "size": 6
+          },
+          {
+            "name": "icon",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "heroTitle",
+            "size": 6
+          },
+          {
+            "name": "heroSubtitle",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "heroBackgroundImage",
+            "size": 6
+          },
+          {
+            "name": "heroForegroundImage",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "ctaButton",
+            "size": 6
+          },
+          {
+            "name": "overviewTitle",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "overviewDescription",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "includedItems",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "galleryImages",
+            "size": 6
+          },
+          {
+            "name": "galleryHighlightText",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "featured",
+            "size": 4
+          },
+          {
+            "name": "order",
+            "size": 4
+          }
+        ],
+        [
+          {
+            "name": "seoMeta",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "howItWorksSteps",
+            "size": 12
+          }
+        ]
+      ]
+    },
+    "uid": "api::ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-th.ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-th"
+  },
+  "type": "object",
+  "environment": null,
+  "tag": null
+}

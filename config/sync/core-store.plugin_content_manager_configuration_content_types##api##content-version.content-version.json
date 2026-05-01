@@ -1,0 +1,337 @@
+{
+  "key": "plugin_content_manager_configuration_content_types::api::content-version.content-version",
+  "value": {
+    "settings": {
+      "bulkable": true,
+      "filterable": true,
+      "searchable": true,
+      "pageSize": 10,
+      "relationOpenMode": "modal",
+      "mainField": "contentTypeUid",
+      "defaultSortBy": "contentTypeUid",
+      "defaultSortOrder": "ASC"
+    },
+    "metadatas": {
+      "id": {
+        "edit": {},
+        "list": {
+          "label": "id",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "contentTypeUid": {
+        "edit": {
+          "label": "contentTypeUid",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "contentTypeUid",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "entryId": {
+        "edit": {
+          "label": "entryId",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "entryId",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "versionNumber": {
+        "edit": {
+          "label": "versionNumber",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "versionNumber",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "actionType": {
+        "edit": {
+          "label": "actionType",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "actionType",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "previousData": {
+        "edit": {
+          "label": "previousData",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "previousData",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "newData": {
+        "edit": {
+          "label": "newData",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "newData",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "changedFields": {
+        "edit": {
+          "label": "changedFields",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "changedFields",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "publishedState": {
+        "edit": {
+          "label": "publishedState",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "publishedState",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "draftState": {
+        "edit": {
+          "label": "draftState",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "draftState",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "userId": {
+        "edit": {
+          "label": "userId",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "userId",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "userEmail": {
+        "edit": {
+          "label": "userEmail",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "userEmail",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "reason": {
+        "edit": {
+          "label": "reason",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "reason",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdAt": {
+        "edit": {
+          "label": "createdAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "createdAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedAt": {
+        "edit": {
+          "label": "updatedAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "updatedAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdBy": {
+        "edit": {
+          "label": "createdBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "createdBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedBy": {
+        "edit": {
+          "label": "updatedBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "updatedBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "documentId": {
+        "edit": {},
+        "list": {
+          "label": "documentId",
+          "searchable": true,
+          "sortable": true
+        }
+      }
+    },
+    "layouts": {
+      "list": [
+        "id",
+        "contentTypeUid",
+        "entryId",
+        "versionNumber"
+      ],
+      "edit": [
+        [
+          {
+            "name": "contentTypeUid",
+            "size": 6
+          },
+          {
+            "name": "entryId",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "versionNumber",
+            "size": 4
+          },
+          {
+            "name": "actionType",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "previousData",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "newData",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "changedFields",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "publishedState",
+            "size": 4
+          },
+          {
+            "name": "draftState",
+            "size": 4
+          }
+        ],
+        [
+          {
+            "name": "userId",
+            "size": 6
+          },
+          {
+            "name": "userEmail",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "reason",
+            "size": 6
+          }
+        ]
+      ]
+    },
+    "uid": "api::content-version.content-version"
+  },
+  "type": "object",
+  "environment": null,
+  "tag": null
+}

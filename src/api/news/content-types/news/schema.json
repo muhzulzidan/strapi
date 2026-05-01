@@ -41,7 +41,7 @@
       ]
     },
     "content": {
-      "type": "text"
+      "type": "blocks"
     },
     "description": {
       "type": "text"

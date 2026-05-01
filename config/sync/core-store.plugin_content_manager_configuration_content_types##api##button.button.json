@@ -1,0 +1,181 @@
+{
+  "key": "plugin_content_manager_configuration_content_types::api::button.button",
+  "value": {
+    "settings": {
+      "bulkable": true,
+      "filterable": true,
+      "searchable": true,
+      "pageSize": 10,
+      "relationOpenMode": "modal",
+      "mainField": "buttonText",
+      "defaultSortBy": "buttonText",
+      "defaultSortOrder": "ASC"
+    },
+    "metadatas": {
+      "id": {
+        "edit": {},
+        "list": {
+          "label": "id",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "buttonText": {
+        "edit": {
+          "label": "buttonText",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "buttonText",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "buttonUrl": {
+        "edit": {
+          "label": "buttonUrl",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "buttonUrl",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "disable": {
+        "edit": {
+          "label": "disable",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "disable",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "buttonId": {
+        "edit": {
+          "label": "buttonId",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "buttonId",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdAt": {
+        "edit": {
+          "label": "createdAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "createdAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedAt": {
+        "edit": {
+          "label": "updatedAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "updatedAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdBy": {
+        "edit": {
+          "label": "createdBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "createdBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedBy": {
+        "edit": {
+          "label": "updatedBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "updatedBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "documentId": {
+        "edit": {},
+        "list": {
+          "label": "documentId",
+          "searchable": true,
+          "sortable": true
+        }
+      }
+    },
+    "layouts": {
+      "list": [
+        "id",
+        "buttonText",
+        "buttonUrl",
+        "disable"
+      ],
+      "edit": [
+        [
+          {
+            "name": "buttonText",
+            "size": 6
+          },
+          {
+            "name": "buttonUrl",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "disable",
+            "size": 4
+          },
+          {
+            "name": "buttonId",
+            "size": 6
+          }
+        ]
+      ]
+    },
+    "uid": "api::button.button"
+  },
+  "type": "object",
+  "environment": null,
+  "tag": null
+}
