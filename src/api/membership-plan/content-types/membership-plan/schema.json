@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "membership-plan",
+    "pluralName": "membership-plans",
+    "displayName": "Membership Plan",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "planId": {
+      "type": "string"
+    },
+    "benefits": {
+      "type": "json"
+    },
+    "sortOrder": {
+      "type": "integer"
+    },
+    "isActive": {
+      "type": "boolean"
+    },
+    "featured": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "text"
+    }
+  },
+  "collectionName": "membership_plans"
+}

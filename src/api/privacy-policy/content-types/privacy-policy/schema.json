@@ -1,0 +1,63 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "privacy-policy",
+    "pluralName": "privacy-policies",
+    "displayName": "Privacy Policy",
+    "description": "Privacy policy documents with versioning support"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "version": {
+      "type": "string",
+      "required": true
+    },
+    "effectiveDate": {
+      "type": "datetime",
+      "required": true
+    },
+    "lastUpdated": {
+      "type": "datetime"
+    },
+    "content": {
+      "type": "richtext",
+      "required": true
+    },
+    "summary": {
+      "type": "text"
+    },
+    "isActive": {
+      "type": "boolean",
+      "required": true
+    },
+    "type": {
+      "type": "string",
+      "required": true
+    },
+    "jurisdiction": {
+      "type": "string"
+    },
+    "sections": {
+      "type": "json"
+    },
+    "relatedDocuments": {
+      "type": "json"
+    },
+    "metaDescription": {
+      "type": "text"
+    }
+  },
+  "collectionName": "privacy_policies"
+}

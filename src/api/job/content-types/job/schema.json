@@ -1,0 +1,62 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "job",
+    "pluralName": "jobs",
+    "displayName": "Job",
+    "description": "An open or archived job/career posting for TASFRL."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "shortSummary": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "workType": {
+      "type": "string"
+    },
+    "employmentType": {
+      "type": "string"
+    },
+    "description": {
+      "type": "richtext"
+    },
+    "pdfAttachment": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "applyEnabled": {
+      "type": "boolean"
+    },
+    "sortOrder": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "collectionName": "jobs"
+}

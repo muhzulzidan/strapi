@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "ct-5-siqnyk-ribhz-ur-99-gp-ud-0-z",
+    "pluralName": "ct-5-siqnyk-ribhz-ur-99-gp-ud-0-zes",
+    "displayName": "How It Works Step",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    }
+  },
+  "collectionName": "ct_5_siqnyk_ribhz_ur_99_gp_ud_0_zes"
+}

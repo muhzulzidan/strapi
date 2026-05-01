@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "ct-7-i-vmp-12-dc-bkj-szot-avqh-h-4",
+    "pluralName": "ct-7-i-vmp-12-dc-bkj-szot-avqh-h-4s",
+    "displayName": "Speaker",
+    "description": "Speaker for events"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "bio": {
+      "type": "text"
+    }
+  },
+  "collectionName": "ct_7_i_vmp_12_dc_bkj_szot_avqh_h_4s"
+}

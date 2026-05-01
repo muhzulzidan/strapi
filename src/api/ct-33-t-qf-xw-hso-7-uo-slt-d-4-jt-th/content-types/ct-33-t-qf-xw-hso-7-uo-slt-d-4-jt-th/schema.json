@@ -1,0 +1,108 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-th",
+    "pluralName": "ct-33-t-qf-xw-hso-7-uo-slt-d-4-jt-ths",
+    "displayName": "Land Service",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "shortDescription": {
+      "type": "text",
+      "required": true
+    },
+    "icon": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "heroTitle": {
+      "type": "string",
+      "required": true
+    },
+    "heroSubtitle": {
+      "type": "text"
+    },
+    "heroBackgroundImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "heroForegroundImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "ctaButton": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::button.button"
+    },
+    "overviewTitle": {
+      "type": "string",
+      "required": true
+    },
+    "overviewDescription": {
+      "type": "text"
+    },
+    "includedItems": {
+      "type": "json"
+    },
+    "galleryImages": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "galleryHighlightText": {
+      "type": "string"
+    },
+    "featured": {
+      "type": "boolean"
+    },
+    "order": {
+      "type": "integer"
+    },
+    "seoMeta": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::seo.seo"
+    },
+    "howItWorksSteps": {
+      "type": "json"
+    }
+  },
+  "collectionName": "ct_33_t_qf_xw_hso_7_uo_slt_d_4_jt_ths"
+}

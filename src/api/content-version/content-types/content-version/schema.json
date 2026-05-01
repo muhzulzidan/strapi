@@ -1,0 +1,77 @@
+{
+  "kind": "collectionType",
+  "collectionName": "content_versions",
+  "info": {
+    "singularName": "content-version",
+    "pluralName": "content-versions",
+    "displayName": "Content Version",
+    "description": "Stores snapshots of content changes for audit trail and revert capability"
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "contentTypeUid": {
+      "type": "string",
+      "required": true,
+      "index": true,
+      "example": "api::news.news"
+    },
+    "entryId": {
+      "type": "string",
+      "required": true,
+      "index": true,
+      "example": "123e4567-e89b-12d3-a456-426614174000"
+    },
+    "locale": {
+      "type": "string",
+      "default": "en"
+    },
+    "versionNumber": {
+      "type": "integer",
+      "required": true,
+      "index": true
+    },
+    "actionType": {
+      "type": "enumeration",
+      "enum": ["create", "update", "publish", "unpublish", "delete", "revert"],
+      "required": true,
+      "default": "update"
+    },
+    "previousData": {
+      "type": "json",
+      "required": false
+    },
+    "newData": {
+      "type": "json",
+      "required": true
+    },
+    "changedFields": {
+      "type": "json",
+      "required": false
+    },
+    "publishedState": {
+      "type": "boolean",
+      "default": false
+    },
+    "draftState": {
+      "type": "boolean",
+      "default": true
+    },
+    "userId": {
+      "type": "string",
+      "required": false
+    },
+    "userEmail": {
+      "type": "string",
+      "required": false
+    },
+    "reason": {
+      "type": "text",
+      "required": false
+    }
+  }
+}

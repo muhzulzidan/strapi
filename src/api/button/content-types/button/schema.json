@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "button",
+    "pluralName": "buttons",
+    "displayName": "Button",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "buttonText": {
+      "type": "string"
+    },
+    "buttonUrl": {
+      "type": "string"
+    },
+    "disable": {
+      "type": "boolean"
+    },
+    "buttonId": {
+      "type": "string"
+    }
+  },
+  "collectionName": "buttons"
+}

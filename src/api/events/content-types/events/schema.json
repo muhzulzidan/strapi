@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "events",
+    "pluralName": "eventses",
+    "displayName": "Events",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
+    },
+    "date": {
+      "type": "datetime",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "location": {
+      "type": "json",
+      "required": true
+    },
+    "price": {
+      "type": "integer",
+      "required": true
+    },
+    "highlights": {
+      "type": "json"
+    },
+    "category": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::event-category.event-category",
+      "required": true
+    },
+    "locationText": {
+      "type": "string"
+    },
+    "speakers": {
+      "type": "json"
+    },
+    "recordingUrl": {
+      "type": "string"
+    }
+  },
+  "collectionName": "eventses"
+}

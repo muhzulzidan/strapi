@@ -1,0 +1,6 @@
+{
+  "singleTypes": ["metaDefault", "subscribeSettings"],
+  "relationTargets": {
+    "page.listOfSections": "sectionBlock"
+  }
+}

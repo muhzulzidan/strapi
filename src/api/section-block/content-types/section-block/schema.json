@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "section-block",
+    "pluralName": "section-blocks",
+    "displayName": "Section Block",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "sectionsName": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "ctaButton": {
+      "type": "json"
+    },
+    "youtubeVideo": {
+      "type": "string"
+    },
+    "listOfItems": {
+      "type": "json"
+    },
+    "backgroundImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  },
+  "collectionName": "section_blocks"
+}
