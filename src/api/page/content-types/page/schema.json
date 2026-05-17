@@ -27,6 +27,10 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::section-block.section-block"
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
     }
   },
   "collectionName": "pages"

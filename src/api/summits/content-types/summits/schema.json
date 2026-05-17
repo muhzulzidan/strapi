@@ -43,6 +43,10 @@
         "videos",
         "audios"
       ]
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
     }
   },
   "collectionName": "summitses"

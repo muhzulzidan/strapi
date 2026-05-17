@@ -61,6 +61,10 @@
     },
     "recordingUrl": {
       "type": "string"
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
     }
   },
   "collectionName": "eventses"

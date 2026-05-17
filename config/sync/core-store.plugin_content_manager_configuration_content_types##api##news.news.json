@@ -148,6 +148,20 @@
           "sortable": true
         }
       },
+      "sendToWebhook": {
+        "edit": {
+          "label": "sendToWebhook",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "sendToWebhook",
+          "searchable": true,
+          "sortable": true
+        }
+      },
       "createdAt": {
         "edit": {
           "label": "createdAt",
@@ -263,10 +277,16 @@
           {
             "name": "content",
             "size": 12
-          },
+          }
+        ],
+        [
           {
             "name": "featured",
-            "size": 4
+            "size": 6
+          },
+          {
+            "name": "sendToWebhook",
+            "size": 6
           }
         ]
       ]

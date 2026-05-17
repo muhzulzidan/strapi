@@ -55,6 +55,10 @@
     },
     "status": {
       "type": "string"
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
     }
   },
   "collectionName": "jobs"

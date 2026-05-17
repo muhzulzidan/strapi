@@ -33,6 +33,10 @@
     },
     "order": {
       "type": "integer"
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
     }
   },
   "collectionName": "legal_documents"
