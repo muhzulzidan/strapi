@@ -1,4 +1,8 @@
 import type { Core } from '@strapi/strapi';
+import {
+  applyWebhookControllerOverrides,
+  patchWebhookRunnerWithContentTypeFilter,
+} from './webhook-content-type-filter';
 
 const CONTENT_VERSION_UID = 'api::content-version.content-version';
 const AUTO_SLUG_UIDS = new Set([
@@ -150,6 +154,11 @@ export default {
    * This gives you an opportunity to extend code.
    */
   register({ strapi }: { strapi: Core.Strapi }) {
+    // Override admin webhook controllers to accept the custom `contentTypes`
+    // field used by the custom Webhooks admin page. Must run in register so
+    // the override is in place before any admin request is handled.
+    applyWebhookControllerOverrides(strapi);
+
     // Hook into entity service lifecycle to capture changes
     originalCreate = strapi.entityService.create;
     originalUpdate = strapi.entityService.update;
@@ -314,7 +323,10 @@ export default {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
-  bootstrap({ strapi }: { strapi: Core.Strapi }) {
+  async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // Filter webhook deliveries for entry events by configured content types.
+    await patchWebhookRunnerWithContentTypeFilter(strapi);
+
     strapi.db.lifecycles.subscribe({
       models: Array.from(AUTO_SLUG_UIDS),
       beforeCreate(event) {

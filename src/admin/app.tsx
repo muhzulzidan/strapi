@@ -1,5 +1,6 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
 import { darkTheme, lightTheme } from '@strapi/design-system';
+import type { RouteObject } from 'react-router-dom';
 
 const greenLightColors = {
   buttonPrimary500: '#1f8f57',
@@ -31,7 +32,59 @@ const greenDarkColors = {
   secondary700: '#359960',
 };
 
+const buildCustomWebhookRoutes = () => {
+  const createRoute: RouteObject = {
+    path: 'webhooks/create',
+    lazy: async () => {
+      const { ProtectedCustomWebhookCreatePage } = await import('./pages/Webhooks/CustomWebhookPage');
+      return { Component: ProtectedCustomWebhookCreatePage };
+    },
+  };
+
+  const editRoute: RouteObject = {
+    path: 'webhooks/:id',
+    lazy: async () => {
+      const { ProtectedCustomWebhookEditPage } = await import('./pages/Webhooks/CustomWebhookPage');
+      return { Component: ProtectedCustomWebhookEditPage };
+    },
+  };
+
+  return { createRoute, editRoute };
+};
+
+const replaceWebhookSettingsRoutes = (routes: RouteObject[]): RouteObject[] => {
+  const { createRoute, editRoute } = buildCustomWebhookRoutes();
+
+  return routes.map((route) => {
+    if (route.path !== 'settings/*' || !Array.isArray(route.children)) {
+      return route;
+    }
+
+    const children = route.children.map((child) => {
+      if (child.path === 'webhooks/create') {
+        return createRoute;
+      }
+
+      if (child.path === 'webhooks/:id') {
+        return editRoute;
+      }
+
+      return child;
+    });
+
+    return {
+      ...route,
+      children,
+    };
+  });
+};
+
 export default {
+  register(app: StrapiApp) {
+    // There is no public injection zone for the built-in Webhooks create/edit form.
+    // We replace only those two settings routes to keep the native list page experience.
+    (app as any).router.addRoute((routes: RouteObject[]) => replaceWebhookSettingsRoutes(routes));
+  },
   config: {
     theme: {
       light: {

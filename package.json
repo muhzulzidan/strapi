@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@strapi/plugin-cloud": "5.46.0",
-    "@strapi/plugin-documentation": "^5.44.0",
-    "@strapi/plugin-sentry": "^5.44.0",
+    "@strapi/plugin-documentation": "5.46.0",
+    "@strapi/plugin-sentry": "5.46.0",
     "@strapi/plugin-seo": "^2.0.9",
     "@strapi/plugin-users-permissions": "5.46.0",
     "@strapi/strapi": "5.46.0",
@@ -28,7 +28,6 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
     "strapi-plugin-config-sync": "^3.2.0",
-    "strapi-plugin-preview-button": "^3.0.2",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
