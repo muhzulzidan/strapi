@@ -18,10 +18,16 @@ import {
   Main,
   MultiSelect,
   MultiSelectOption,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
   TextInput,
   Typography,
 } from '@strapi/design-system';
-import { Check, Minus, Play, Plus } from '@strapi/icons';
+import { ArrowClockwise, Check, Minus, Play, Plus, Trash } from '@strapi/icons';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -130,10 +136,44 @@ const toErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+type DeliveryRow = {
+  id: number;
+  event: string;
+  modelUid: string | null;
+  statusCode: number | null;
+  success: boolean;
+  errorMessage: string | null;
+  durationMs: number | null;
+  requestPayload: string | null;
+  responseBody: string | null;
+  createdAt: string;
+};
+
+const prettyJson = (raw: string | null | undefined): string => {
+  if (!raw) return '';
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+};
+
+const formatDateTime = (value: string): string => {
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString();
+  } catch {
+    return value;
+  }
+};
+
 const CustomWebhookPage = ({ mode }: { mode: Mode }) => {
   const { formatMessage } = useIntl();
   const { toggleNotification } = useNotification();
-  const { get, post, put } = useFetchClient();
+  const { get, post, put, del } = useFetchClient();
   const { _unstableFormatAPIError: formatAPIError } = useAPIErrorHandler();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -144,6 +184,10 @@ const CustomWebhookPage = ({ mode }: { mode: Mode }) => {
   const [triggerMessage, setTriggerMessage] = useState<string | null>(null);
   const [contentTypeOptions, setContentTypeOptions] = useState<ContentTypeOption[]>([]);
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
+  const [deliveries, setDeliveries] = useState<DeliveryRow[]>([]);
+  const [isLoadingDeliveries, setIsLoadingDeliveries] = useState(false);
+  const [isClearingDeliveries, setIsClearingDeliveries] = useState(false);
+  const [expandedDeliveryId, setExpandedDeliveryId] = useState<number | null>(null);
 
   const pageTitle =
     mode === 'create'
@@ -198,6 +242,57 @@ const CustomWebhookPage = ({ mode }: { mode: Mode }) => {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const loadDeliveries = useCallback(async () => {
+    if (mode !== 'edit' || !id) {
+      return;
+    }
+    setIsLoadingDeliveries(true);
+    try {
+      const response = await get(`/admin/webhooks/${id}/deliveries`, { params: { limit: 100 } });
+      const rows = Array.isArray(response?.data?.data) ? (response.data.data as DeliveryRow[]) : [];
+      setDeliveries(rows);
+    } catch (error) {
+      toggleNotification({
+        type: 'danger',
+        message: toErrorMessage(formatAPIError(error), 'Failed to load deliveries.'),
+      });
+    } finally {
+      setIsLoadingDeliveries(false);
+    }
+  }, [formatAPIError, get, id, mode, toggleNotification]);
+
+  const clearDeliveries = useCallback(async () => {
+    if (mode !== 'edit' || !id) {
+      return;
+    }
+    if (typeof window !== 'undefined' && !window.confirm('Clear all delivery logs for this webhook?')) {
+      return;
+    }
+    setIsClearingDeliveries(true);
+    try {
+      await del(`/admin/webhooks/${id}/deliveries`);
+      setDeliveries([]);
+      toggleNotification({
+        type: 'success',
+        message: formatMessage({
+          id: 'Settings.webhooks.deliveries.cleared',
+          defaultMessage: 'Delivery log cleared',
+        }),
+      });
+    } catch (error) {
+      toggleNotification({
+        type: 'danger',
+        message: toErrorMessage(formatAPIError(error), 'Failed to clear deliveries.'),
+      });
+    } finally {
+      setIsClearingDeliveries(false);
+    }
+  }, [del, formatAPIError, formatMessage, id, mode, toggleNotification]);
+
+  useEffect(() => {
+    void loadDeliveries();
+  }, [loadDeliveries]);
 
   const setHeaderRow = (index: number, next: HeaderRow) => {
     setForm((prev) => ({
@@ -565,6 +660,181 @@ const CustomWebhookPage = ({ mode }: { mode: Mode }) => {
 
               </Flex>
             </Box>
+
+            {mode === 'edit' && id ? (
+              <Box background="neutral0" padding={8} shadow="filterShadow" hasRadius>
+                <Flex direction="column" alignItems="stretch" gap={4}>
+                  <Flex justifyContent="space-between" alignItems="center" gap={2}>
+                    <Typography variant="delta" tag="h2">
+                      {formatMessage({
+                        id: 'Settings.webhooks.deliveries.title',
+                        defaultMessage: 'Deliveries',
+                      })}
+                    </Typography>
+                    <Flex gap={2}>
+                      <Button
+                        variant="tertiary"
+                        startIcon={<ArrowClockwise />}
+                        loading={isLoadingDeliveries}
+                        disabled={isLoadingDeliveries || isClearingDeliveries}
+                        onClick={() => void loadDeliveries()}
+                      >
+                        {formatMessage({
+                          id: 'Settings.webhooks.deliveries.refresh',
+                          defaultMessage: 'Refresh',
+                        })}
+                      </Button>
+                      <Button
+                        variant="danger-light"
+                        startIcon={<Trash />}
+                        loading={isClearingDeliveries}
+                        disabled={isLoadingDeliveries || isClearingDeliveries || deliveries.length === 0}
+                        onClick={() => void clearDeliveries()}
+                      >
+                        {formatMessage({
+                          id: 'Settings.webhooks.deliveries.clear',
+                          defaultMessage: 'Clear',
+                        })}
+                      </Button>
+                    </Flex>
+                  </Flex>
+
+                  {deliveries.length === 0 ? (
+                    <Box padding={6} background="neutral100" hasRadius>
+                      <Typography textColor="neutral600">
+                        {isLoadingDeliveries
+                          ? formatMessage({
+                              id: 'Settings.webhooks.deliveries.loading',
+                              defaultMessage: 'Loading deliveries...',
+                            })
+                          : formatMessage({
+                              id: 'Settings.webhooks.deliveries.empty',
+                              defaultMessage: 'No deliveries recorded yet. Trigger this webhook or save an entry of an allowed content type to generate one.',
+                            })}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Box style={{ overflowX: 'auto' }}>
+                      <Table colCount={6} rowCount={deliveries.length + 1}>
+                        <Thead>
+                          <Tr>
+                            <Th><Typography variant="sigma">Time</Typography></Th>
+                            <Th><Typography variant="sigma">Event</Typography></Th>
+                            <Th><Typography variant="sigma">Content type</Typography></Th>
+                            <Th><Typography variant="sigma">Status</Typography></Th>
+                            <Th><Typography variant="sigma">Duration</Typography></Th>
+                            <Th><Typography variant="sigma">Message</Typography></Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {deliveries.map((row) => {
+                            const statusText =
+                              row.statusCode === null || row.statusCode === undefined
+                                ? '—'
+                                : String(row.statusCode);
+                            const statusColor = row.success
+                              ? 'success600'
+                              : row.statusCode === 204
+                                ? 'neutral600'
+                                : 'danger600';
+                            const isExpanded = expandedDeliveryId === row.id;
+                            return (
+                              <React.Fragment key={row.id}>
+                                <Tr
+                                  onClick={() => setExpandedDeliveryId(isExpanded ? null : row.id)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <Td>
+                                    <Typography textColor="neutral800">
+                                      {formatDateTime(row.createdAt)}
+                                    </Typography>
+                                  </Td>
+                                  <Td>
+                                    <Typography textColor="neutral800">{row.event}</Typography>
+                                  </Td>
+                                  <Td>
+                                    <Typography textColor="neutral600">
+                                      {row.modelUid || '—'}
+                                    </Typography>
+                                  </Td>
+                                  <Td>
+                                    <Typography textColor={statusColor} fontWeight="semiBold">
+                                      {statusText}
+                                    </Typography>
+                                  </Td>
+                                  <Td>
+                                    <Typography textColor="neutral600">
+                                      {row.durationMs !== null && row.durationMs !== undefined
+                                        ? `${row.durationMs} ms`
+                                        : '—'}
+                                    </Typography>
+                                  </Td>
+                                  <Td>
+                                    <Typography textColor={row.success ? 'neutral600' : 'danger600'}>
+                                      {row.errorMessage || (row.statusCode === 204 ? 'Skipped (content type filter)' : '')}
+                                    </Typography>
+                                  </Td>
+                                </Tr>
+                                {isExpanded ? (
+                                  <Tr>
+                                    <Td colSpan={6}>
+                                      <Flex direction="column" alignItems="stretch" gap={3} padding={3}>
+                                        <Box>
+                                          <Typography variant="sigma" textColor="neutral600">
+                                            Request payload (sent to your webhook URL)
+                                          </Typography>
+                                          <Box
+                                            background="neutral100"
+                                            padding={3}
+                                            hasRadius
+                                            marginTop={1}
+                                            style={{
+                                              maxHeight: '320px',
+                                              overflow: 'auto',
+                                              fontFamily: 'monospace',
+                                              fontSize: '12px',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-all',
+                                            }}
+                                          >
+                                            {prettyJson(row.requestPayload) || '(empty)'}
+                                          </Box>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="sigma" textColor="neutral600">
+                                            Response body (from your webhook URL)
+                                          </Typography>
+                                          <Box
+                                            background="neutral100"
+                                            padding={3}
+                                            hasRadius
+                                            marginTop={1}
+                                            style={{
+                                              maxHeight: '320px',
+                                              overflow: 'auto',
+                                              fontFamily: 'monospace',
+                                              fontSize: '12px',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-all',
+                                            }}
+                                          >
+                                            {prettyJson(row.responseBody) || '(empty)'}
+                                          </Box>
+                                        </Box>
+                                      </Flex>
+                                    </Td>
+                                  </Tr>
+                                ) : null}
+                              </React.Fragment>
+                            );
+                          })}
+                        </Tbody>
+                      </Table>
+                    </Box>
+                  )}
+                </Flex>
+              </Box>
+            ) : null}
           </Flex>
         </Box>
       </Layouts.Content>

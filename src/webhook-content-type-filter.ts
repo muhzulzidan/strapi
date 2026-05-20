@@ -28,6 +28,91 @@ const ENTRY_EVENTS = new Set<EntryWebhookEvent>([
 let webhookFilterMap: WebhookFilterMap = {};
 let isFilterMapLoaded = false;
 
+const DELIVERY_TABLE = 'webhook_deliveries';
+const DELIVERY_RETENTION_PER_WEBHOOK = 200;
+const DELIVERY_PAYLOAD_LIMIT = 8 * 1024; // 8 KB
+const DELIVERY_RESPONSE_LIMIT = 4 * 1024; // 4 KB
+let isDeliveryTableReady = false;
+
+const truncate = (value: string | null | undefined, max: number): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return value.length > max ? `${value.slice(0, max)}…` : value;
+};
+
+const ensureDeliveryTable = async (strapiInstance: Core.Strapi): Promise<void> => {
+  if (isDeliveryTableReady) {
+    return;
+  }
+  const knex: any = (strapiInstance.db as any).connection;
+  const exists = await knex.schema.hasTable(DELIVERY_TABLE);
+  if (!exists) {
+    await knex.schema.createTable(DELIVERY_TABLE, (table: any) => {
+      table.increments('id').primary();
+      table.string('webhook_id').notNullable().index();
+      table.string('event').notNullable();
+      table.string('model_uid').nullable();
+      table.integer('status_code').nullable();
+      table.boolean('success').notNullable().defaultTo(false);
+      table.text('error_message').nullable();
+      table.integer('duration_ms').nullable();
+      table.text('request_payload').nullable();
+      table.text('response_body').nullable();
+      table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
+      table.index(['webhook_id', 'created_at'], 'webhook_deliveries_webhook_created_idx');
+    });
+    strapiInstance.log?.info?.(`[webhook-filter] created table ${DELIVERY_TABLE}`);
+  }
+  isDeliveryTableReady = true;
+};
+
+const recordDelivery = async (
+  strapiInstance: Core.Strapi,
+  row: {
+    webhookId: string | number;
+    event: string;
+    modelUid: string | null;
+    statusCode: number | null;
+    success: boolean;
+    errorMessage: string | null;
+    durationMs: number;
+    requestPayload: string | null;
+    responseBody: string | null;
+  }
+): Promise<void> => {
+  try {
+    await ensureDeliveryTable(strapiInstance);
+    const knex: any = (strapiInstance.db as any).connection;
+    const webhookId = String(row.webhookId);
+    await knex(DELIVERY_TABLE).insert({
+      webhook_id: webhookId,
+      event: row.event,
+      model_uid: row.modelUid,
+      status_code: row.statusCode,
+      success: row.success,
+      error_message: truncate(row.errorMessage, DELIVERY_RESPONSE_LIMIT),
+      duration_ms: row.durationMs,
+      request_payload: truncate(row.requestPayload, DELIVERY_PAYLOAD_LIMIT),
+      response_body: truncate(row.responseBody, DELIVERY_RESPONSE_LIMIT),
+      created_at: new Date(),
+    });
+
+    // Trim old rows beyond retention cap for this webhook.
+    const overflow = await knex(DELIVERY_TABLE)
+      .where({ webhook_id: webhookId })
+      .orderBy('id', 'desc')
+      .offset(DELIVERY_RETENTION_PER_WEBHOOK)
+      .limit(1000)
+      .pluck('id');
+    if (Array.isArray(overflow) && overflow.length > 0) {
+      await knex(DELIVERY_TABLE).whereIn('id', overflow).del();
+    }
+  } catch (error) {
+    strapiInstance.log?.warn?.(`[webhook-filter] failed to record delivery: ${(error as Error).message}`);
+  }
+};
+
 const normalizeContentTypeUids = (value: unknown): string[] => {
   const raw = Array.isArray(value) ? value : [];
 
@@ -309,9 +394,122 @@ export const applyWebhookControllerOverrides = (strapiInstance: Core.Strapi): vo
       }
     };
 
+    wrapped.listWebhookDeliveries = async (ctx: any) => {
+      const webhookId = String(ctx.params?.id ?? '');
+      if (!webhookId) {
+        return ctx.badRequest('webhook id required');
+      }
+      const rawLimit = Number(ctx.request?.query?.limit);
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+      try {
+        await ensureDeliveryTable(strapiInstance);
+        const knex: any = (strapiInstance.db as any).connection;
+        const rows = await knex(DELIVERY_TABLE)
+          .where({ webhook_id: webhookId })
+          .orderBy('id', 'desc')
+          .limit(limit)
+          .select(
+            'id',
+            'event',
+            'model_uid',
+            'status_code',
+            'success',
+            'error_message',
+            'duration_ms',
+            'request_payload',
+            'response_body',
+            'created_at'
+          );
+        ctx.body = {
+          data: rows.map((row: any) => ({
+            id: row.id,
+            event: row.event,
+            modelUid: row.model_uid,
+            statusCode: row.status_code,
+            success: !!row.success,
+            errorMessage: row.error_message,
+            durationMs: row.duration_ms,
+            requestPayload: row.request_payload,
+            responseBody: row.response_body,
+            createdAt: row.created_at,
+          })),
+        };
+      } catch (error) {
+        strapiInstance.log?.error?.(`[webhook-filter] listDeliveries failed: ${(error as Error).message}`);
+        return ctx.internalServerError('Failed to load deliveries');
+      }
+    };
+
+    wrapped.clearWebhookDeliveries = async (ctx: any) => {
+      const webhookId = String(ctx.params?.id ?? '');
+      if (!webhookId) {
+        return ctx.badRequest('webhook id required');
+      }
+      try {
+        await ensureDeliveryTable(strapiInstance);
+        const knex: any = (strapiInstance.db as any).connection;
+        const deleted = await knex(DELIVERY_TABLE).where({ webhook_id: webhookId }).del();
+        ctx.body = { data: { deleted } };
+      } catch (error) {
+        strapiInstance.log?.error?.(`[webhook-filter] clearDeliveries failed: ${(error as Error).message}`);
+        return ctx.internalServerError('Failed to clear deliveries');
+      }
+    };
+
     wrapped.__contentTypeFilterPatched = true;
     return wrapped;
   });
+
+  // Register new admin routes for the delivery log. Must be done before
+  // server.initRouting() runs in bootstrap — register() is the right phase.
+  try {
+    const adminModule: any = strapiInstance.get('admin');
+    const adminRoutes = adminModule?.routes?.admin?.routes;
+    if (Array.isArray(adminRoutes)) {
+      const policies = [
+        'admin::isAuthenticatedAdmin',
+        {
+          name: 'admin::hasPermissions',
+          config: { actions: ['admin::webhooks.read'] },
+        },
+      ];
+      const writePolicies = [
+        'admin::isAuthenticatedAdmin',
+        {
+          name: 'admin::hasPermissions',
+          config: { actions: ['admin::webhooks.update'] },
+        },
+      ];
+      const alreadyRegistered = adminRoutes.some(
+        (r: any) => r?.path === '/webhooks/:id/deliveries'
+      );
+      if (!alreadyRegistered) {
+        adminRoutes.push(
+          {
+            method: 'GET',
+            path: '/webhooks/:id/deliveries',
+            handler: 'webhooks.listWebhookDeliveries',
+            config: { policies },
+          },
+          {
+            method: 'DELETE',
+            path: '/webhooks/:id/deliveries',
+            handler: 'webhooks.clearWebhookDeliveries',
+            config: { policies: writePolicies },
+          }
+        );
+        strapiInstance.log?.info?.(
+          '[webhook-filter] registered /admin/webhooks/:id/deliveries routes'
+        );
+      }
+    } else {
+      strapiInstance.log?.warn?.('[webhook-filter] admin routes array not found; delivery routes skipped');
+    }
+  } catch (error) {
+    strapiInstance.log?.warn?.(
+      `[webhook-filter] failed to register delivery routes: ${(error as Error).message}`
+    );
+  }
 
   strapiInstance.log?.info?.('[webhook-filter] admin::webhooks controller overrides applied');
 };
@@ -324,6 +522,7 @@ export const patchWebhookRunnerWithContentTypeFilter = async (
   strapiInstance: Core.Strapi
 ): Promise<void> => {
   await ensureFilterMapLoaded(strapiInstance);
+  await ensureDeliveryTable(strapiInstance);
 
   const webhookRunner = strapiInstance.get('webhookRunner') as any;
 
@@ -339,13 +538,60 @@ export const patchWebhookRunnerWithContentTypeFilter = async (
     const resolvedUid = resolveEntryEventContentTypeUid(aliasLookup, info);
 
     if (!shouldDeliverEntryEvent(event, allowedContentTypes, resolvedUid)) {
-      return {
+      const skipped = {
         statusCode: 204,
         message: 'Skipped by webhook content-type filter',
       };
+      if (webhook?.id !== undefined && webhook?.id !== null) {
+        await recordDelivery(strapiInstance, {
+          webhookId: webhook.id,
+          event,
+          modelUid: resolvedUid,
+          statusCode: skipped.statusCode,
+          success: false,
+          errorMessage: skipped.message,
+          durationMs: 0,
+          requestPayload: null,
+          responseBody: null,
+        });
+      }
+      return skipped;
     }
 
-    return originalRun(webhook, event, info);
+    const startedAt = Date.now();
+    let result: { statusCode?: number; message?: string } | undefined;
+    let thrownError: Error | null = null;
+    try {
+      result = await originalRun(webhook, event, info);
+      return result;
+    } catch (error) {
+      thrownError = error as Error;
+      throw error;
+    } finally {
+      const durationMs = Date.now() - startedAt;
+      if (webhook?.id !== undefined && webhook?.id !== null) {
+        const statusCode = thrownError ? null : result?.statusCode ?? null;
+        const success =
+          !thrownError && typeof statusCode === 'number' && statusCode >= 200 && statusCode < 300;
+        let requestPayload: string | null = null;
+        try {
+          requestPayload = JSON.stringify({ event, ...info });
+        } catch {
+          requestPayload = null;
+        }
+        void recordDelivery(strapiInstance, {
+          webhookId: webhook.id,
+          event,
+          modelUid: resolvedUid,
+          statusCode,
+          success,
+          errorMessage: thrownError ? thrownError.message : result?.message ?? null,
+          durationMs,
+          requestPayload,
+          responseBody: result?.message ?? null,
+        });
+      }
+    }
   };
 
   webhookRunner.__contentTypeFilterPatched = true;
