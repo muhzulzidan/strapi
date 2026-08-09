@@ -76,10 +76,8 @@
     "registrationConfig": {
       "type": "json"
     },
-    "isCancelled": {
-      "type": "boolean",
-      "default": false,
-      "required": false
+    "status": {
+      "type": "string"
     }
   },
   "collectionName": "eventses"

@@ -90,7 +90,11 @@ function renderDocument(uid: string, doc: any): string {
   // Description / short summary
   const description = doc.description || doc.shortSummary;
   if (description) {
-    fields.push(`<p class="description">${escapeHtml(description)}</p>`);
+    if (Array.isArray(description)) {
+      fields.push(`<div class="description">${renderBlocks(description)}</div>`);
+    } else {
+      fields.push(`<p class="description">${escapeHtml(description)}</p>`);
+    }
   }
 
   // Main content
