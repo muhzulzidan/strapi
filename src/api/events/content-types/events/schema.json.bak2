@@ -19,15 +19,12 @@
       "type": "uid",
       "targetField": "title"
     },
-    "category": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::event-category.event-category",
-      "required": true
-    },
     "date": {
       "type": "datetime",
       "required": true
+    },
+    "description": {
+      "type": "blocks"
     },
     "image": {
       "type": "media",
@@ -39,54 +36,45 @@
         "audios"
       ]
     },
-    "description": {
-      "type": "blocks"
-    },
-    "highlights": {
-      "type": "json"
-    },
-    "eventFormat": {
-      "type": "enumeration",
-      "enum": [
-        "online",
-        "in_person"
-      ],
-      "required": true
-    },
-    "locationText": {
-      "type": "string"
-    },
-    "meetingUrl": {
-      "type": "string",
-      "required": false
-    },
     "location": {
       "type": "json",
       "required": true
-    },
-    "speakers": {
-      "type": "json"
     },
     "price": {
       "type": "integer",
       "required": true
     },
+    "highlights": {
+      "type": "json"
+    },
+    "category": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::event-category.event-category",
+      "required": true
+    },
+    "locationText": {
+      "type": "string"
+    },
+    "speakers": {
+      "type": "json"
+    },
     "recordingUrl": {
       "type": "string"
+    },
+    "sendToWebhook": {
+      "type": "boolean",
+      "default": false
+    },
+    "isTest": {
+      "type": "boolean",
+      "default": false
     },
     "registrationMode": {
       "type": "string"
     },
     "registrationConfig": {
       "type": "json"
-    },
-    "isTest": {
-      "type": "boolean",
-      "default": false
-    },
-    "sendToWebhook": {
-      "type": "boolean",
-      "default": false
     },
     "isCancelled": {
       "type": "boolean",
