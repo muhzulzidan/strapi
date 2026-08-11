@@ -92,7 +92,9 @@
       "required": false
     },
     "campaignKey": {
-      "type": "string"
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::campaign.campaign"
     }
   },
   "collectionName": "eventses"
