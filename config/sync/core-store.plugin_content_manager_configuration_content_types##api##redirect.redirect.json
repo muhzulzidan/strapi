@@ -1,5 +1,5 @@
 {
-  "key": "plugin_content_manager_configuration_content_types::api::events.events",
+  "key": "plugin_content_manager_configuration_content_types::api::redirect.redirect",
   "value": {
     "settings": {
       "bulkable": true,
@@ -23,7 +23,7 @@
       "title": {
         "edit": {
           "label": "title",
-          "description": "",
+          "description": "Short link title (e.g. Listening Session #1)",
           "placeholder": "",
           "visible": true,
           "editable": true
@@ -37,7 +37,7 @@
       "slug": {
         "edit": {
           "label": "slug",
-          "description": "",
+          "description": "The URL slug (e.g. listening-session-1)",
           "placeholder": "",
           "visible": true,
           "editable": true
@@ -48,30 +48,100 @@
           "sortable": true
         }
       },
-      "aliases": {
+      "destination": {
         "edit": {
-          "label": "aliases",
-          "description": "Secondary slugs / aliases (e.g. [\"preserving-east-texas-land\"])",
+          "label": "destination",
+          "description": "Target destination URL (e.g. Eventbrite ticket link)",
+          "placeholder": "https://www.eventbrite.com/...",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "destination",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "campaignKey": {
+        "edit": {
+          "label": "campaignKey",
+          "description": "Telemetry / analytics campaign key",
           "placeholder": "",
           "visible": true,
           "editable": true
         },
         "list": {
-          "label": "aliases",
+          "label": "campaignKey",
           "searchable": true,
-          "sortable": false
+          "sortable": true
         }
       },
-      "date": {
+      "linkType": {
         "edit": {
-          "label": "date",
+          "label": "linkType",
           "description": "",
           "placeholder": "",
           "visible": true,
           "editable": true
         },
         "list": {
-          "label": "date",
+          "label": "linkType",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "defaultUtmSource": {
+        "edit": {
+          "label": "defaultUtmSource",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "defaultUtmSource",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "defaultUtmMedium": {
+        "edit": {
+          "label": "defaultUtmMedium",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "defaultUtmMedium",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "statusCode": {
+        "edit": {
+          "label": "statusCode",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "statusCode",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "isActive": {
+        "edit": {
+          "label": "isActive",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "isActive",
           "searchable": true,
           "sortable": true
         }
@@ -86,133 +156,6 @@
         },
         "list": {
           "label": "description",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "image": {
-        "edit": {
-          "label": "image",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "image",
-          "searchable": false,
-          "sortable": false
-        }
-      },
-      "location": {
-        "edit": {
-          "label": "location",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "location",
-          "searchable": false,
-          "sortable": false
-        }
-      },
-      "price": {
-        "edit": {
-          "label": "price",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "price",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "highlights": {
-        "edit": {
-          "label": "highlights",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "highlights",
-          "searchable": false,
-          "sortable": false
-        }
-      },
-      "category": {
-        "edit": {
-          "label": "category",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true,
-          "mainField": "name"
-        },
-        "list": {
-          "label": "category",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "locationText": {
-        "edit": {
-          "label": "locationText",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "locationText",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "speakers": {
-        "edit": {
-          "label": "speakers",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "speakers",
-          "searchable": false,
-          "sortable": false
-        }
-      },
-      "recordingUrl": {
-        "edit": {
-          "label": "recordingUrl",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "recordingUrl",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "sendToWebhook": {
-        "edit": {
-          "label": "sendToWebhook",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "sendToWebhook",
           "searchable": true,
           "sortable": true
         }
@@ -244,44 +187,6 @@
           "searchable": true,
           "sortable": true
         }
-      },
-      "createdBy": {
-        "edit": {
-          "label": "createdBy",
-          "description": "",
-          "placeholder": "",
-          "visible": false,
-          "editable": true,
-          "mainField": "firstname"
-        },
-        "list": {
-          "label": "createdBy",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "updatedBy": {
-        "edit": {
-          "label": "updatedBy",
-          "description": "",
-          "placeholder": "",
-          "visible": false,
-          "editable": true,
-          "mainField": "firstname"
-        },
-        "list": {
-          "label": "updatedBy",
-          "searchable": true,
-          "sortable": true
-        }
-      },
-      "documentId": {
-        "edit": {},
-        "list": {
-          "label": "documentId",
-          "searchable": true,
-          "sortable": true
-        }
       }
     },
     "layouts": {
@@ -289,7 +194,8 @@
         "id",
         "title",
         "slug",
-        "date"
+        "destination",
+        "isActive"
       ],
       "edit": [
         [
@@ -304,73 +210,49 @@
         ],
         [
           {
-            "name": "aliases",
+            "name": "destination",
             "size": 12
           }
         ],
         [
           {
-            "name": "date",
+            "name": "campaignKey",
             "size": 6
           },
           {
-            "name": "description",
+            "name": "linkType",
             "size": 6
           }
         ],
         [
           {
-            "name": "image",
-            "size": 6
-          }
-        ],
-        [
+            "name": "defaultUtmSource",
+            "size": 4
+          },
           {
-            "name": "location",
-            "size": 12
-          }
-        ],
-        [
+            "name": "defaultUtmMedium",
+            "size": 4
+          },
           {
-            "name": "price",
+            "name": "statusCode",
             "size": 4
           }
         ],
         [
           {
-            "name": "highlights",
+            "name": "isActive",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "description",
             "size": 12
-          }
-        ],
-        [
-          {
-            "name": "category",
-            "size": 6
-          },
-          {
-            "name": "locationText",
-            "size": 6
-          }
-        ],
-        [
-          {
-            "name": "speakers",
-            "size": 12
-          }
-        ],
-        [
-          {
-            "name": "recordingUrl",
-            "size": 6
-          },
-          {
-            "name": "sendToWebhook",
-            "size": 6
           }
         ]
       ]
     },
-    "uid": "api::events.events"
+    "uid": "api::redirect.redirect"
   },
   "type": "object",
   "environment": null,

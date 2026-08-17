@@ -1,0 +1,63 @@
+{
+  "kind": "collectionType",
+  "info": {
+    "singularName": "redirect",
+    "pluralName": "redirects",
+    "displayName": "Redirect",
+    "description": "Manage marketing shortlinks, campaign redirects, and Eventbrite ticket links"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "destination": {
+      "type": "string",
+      "required": true
+    },
+    "campaignKey": {
+      "type": "string"
+    },
+    "linkType": {
+      "type": "enumeration",
+      "enum": [
+        "event_registration_redirect",
+        "social_short_link",
+        "questionnaire_redirect",
+        "general_redirect"
+      ],
+      "default": "event_registration_redirect"
+    },
+    "defaultUtmSource": {
+      "type": "string"
+    },
+    "defaultUtmMedium": {
+      "type": "string"
+    },
+    "statusCode": {
+      "type": "enumeration",
+      "enum": [
+        "temporary_302",
+        "permanent_301"
+      ],
+      "default": "temporary_302"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "description": {
+      "type": "text"
+    }
+  },
+  "collectionName": "redirects"
+}

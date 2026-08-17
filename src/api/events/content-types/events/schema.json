@@ -95,6 +95,9 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::campaign.campaign"
+    },
+    "aliases": {
+      "type": "json"
     }
   },
   "collectionName": "eventses"
