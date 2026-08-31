@@ -81,6 +81,23 @@ const replaceWebhookSettingsRoutes = (routes: RouteObject[]): RouteObject[] => {
 
 export default {
   register(app: StrapiApp) {
+    app.customFields.register({
+      name: 'central-datetime',
+      type: 'datetime',
+      intlLabel: {
+        id: 'tasfrl.custom-fields.central-datetime.label',
+        defaultMessage: 'Central Time date and time',
+      },
+      intlDescription: {
+        id: 'tasfrl.custom-fields.central-datetime.description',
+        defaultMessage:
+          'Displays and accepts America/Chicago time, regardless of the editor browser timezone.',
+      },
+      components: {
+        Input: async () => import('./components/CentralDateTimeInput'),
+      },
+    });
+
     // There is no public injection zone for the built-in Webhooks create/edit form.
     // We replace only those two settings routes to keep the native list page experience.
     (app as any).router.addRoute((routes: RouteObject[]) => replaceWebhookSettingsRoutes(routes));

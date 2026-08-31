@@ -154,6 +154,15 @@ export default {
    * This gives you an opportunity to extend code.
    */
   register({ strapi }: { strapi: Core.Strapi }) {
+    strapi.customFields.register({
+      name: 'central-datetime',
+      type: 'datetime',
+      inputSize: {
+        default: 6,
+        isResizable: true,
+      },
+    });
+
     // Override admin webhook controllers to accept the custom `contentTypes`
     // field used by the custom Webhooks admin page. Must run in register so
     // the override is in place before any admin request is handled.

@@ -12,6 +12,17 @@ npm run develop
 yarn develop
 ```
 
+## Event times
+
+The `Events.date` field is edited in `America/Chicago` Central Time. Its CMS
+label includes `(Central Time)`, and the picker applies CDT or CST automatically
+for the selected date regardless of the operator's browser timezone. Strapi
+continues to store the value as a UTC ISO timestamp, so API consumers do not
+need a migration or a different date format.
+
+When an event start changes, also review the matching
+`registrationConfig.endAt` value and any human-readable time in `highlights`.
+
 ### `start`
 
 Start your Strapi application with autoReload disabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-start)
