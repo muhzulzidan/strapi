@@ -6,7 +6,7 @@ const publicNewsFilter = () => ({
 
 // API tokens are server credentials. Website visitors never receive one.
 const isTrustedNewsService = (ctx) =>
-  ctx.state?.auth?.strategy?.name === 'api-token' && Boolean(ctx.state.auth.credentials);
+  ['content-api-token', 'api-token'].includes(ctx.state?.auth?.strategy?.name) && Boolean(ctx.state.auth.credentials);
 
 const canReadAdminOnlyNews = (ctx) =>
   isTrustedNewsService(ctx) && String(ctx.query?.includeAdminOnly) === 'true';

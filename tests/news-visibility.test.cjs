@@ -13,7 +13,7 @@ test('visitor filters cannot override public, published news restrictions', () =
     assert.equal(isTrustedNewsService({ state }), false);
   }
   assert.equal(isTrustedNewsService({ state: { auth: { strategy: { name: 'api-token' }, credentials: { id: 1 } } } }), true);
-  const service = { state: { auth: { strategy: { name: 'api-token' }, credentials: { id: 1 } } }, query: {} };
+  const service = { state: { auth: { strategy: { name: 'content-api-token' }, credentials: { id: 1 } } }, query: {} };
   assert.equal(canReadAdminOnlyNews(service), false);
   service.query.includeAdminOnly = 'true';
   assert.equal(canReadAdminOnlyNews(service), true);
