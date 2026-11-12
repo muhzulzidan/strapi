@@ -8,10 +8,13 @@ const publicNewsFilter = () => ({
 const isTrustedNewsService = (ctx) =>
   ctx.state?.auth?.strategy?.name === 'api-token' && Boolean(ctx.state.auth.credentials);
 
-const restrictNewsQuery = (query = {}) => ({
+const canReadAdminOnlyNews = (ctx) =>
+  isTrustedNewsService(ctx) && String(ctx.query?.includeAdminOnly) === 'true';
+
+const restrictNewsQuery = (query = {}, publishedOnly = true) => ({
   ...query,
-  status: 'published',
+  ...(publishedOnly ? { status: 'published' } : {}),
   filters: { $and: [query.filters || {}, publicNewsFilter()] },
 });
 
-module.exports = { isTrustedNewsService, restrictNewsQuery, publicNewsFilter };
+module.exports = { isTrustedNewsService, canReadAdminOnlyNews, restrictNewsQuery, publicNewsFilter };
