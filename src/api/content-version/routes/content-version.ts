@@ -38,6 +38,7 @@ export default {
       handler: 'content-version.revertToVersion',
       config: {
         policies: ['global::content-history-admin'],
+        auth: false,
       },
     },
   ],

@@ -55,3 +55,11 @@ test('private news and news without explicit webhook opt-in never deliver automa
   assert.equal(allowed({ isPublic: true }), false);
   assert.equal(allowed({ isPublic: true, sendToWebhook: true }), true);
 });
+
+test('all version routes use the native administrator session policy, including restore', async () => {
+  const { default: router } = await import('../src/api/content-version/routes/content-version.ts');
+  for (const route of router.routes) {
+    assert.equal(route.config.auth, false);
+    assert.deepEqual(route.config.policies, ['global::content-history-admin']);
+  }
+});
