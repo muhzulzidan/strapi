@@ -85,7 +85,7 @@ export default {
       name: 'news-visibility',
       type: 'boolean',
       intlLabel: { id: 'tasfrl.news.visibility', defaultMessage: 'Visibility' },
-      intlDescription: { id: 'tasfrl.news.visibility.description', defaultMessage: 'Choose Public or Admin only.' },
+      intlDescription: { id: 'tasfrl.news.visibility.description', defaultMessage: 'Choose Public or Admin and staff only.' },
       components: { Input: async () => import('./components/NewsVisibilityInput') },
     });
     app.customFields.register({

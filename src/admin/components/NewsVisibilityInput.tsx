@@ -21,7 +21,7 @@ const NewsVisibilityInput = forwardRef<HTMLInputElement, Props>(
         name={name}
         error={error}
         required={required}
-        hint="Public articles appear on the website. Admin only articles can be viewed only by signed-in administrators. Publish to apply a visibility change."
+        hint="Public articles appear on the website. Admin and staff only articles can be viewed by signed-in administrators and staff. Publish to apply a visibility change."
       >
         <Field.Label action={labelAction}>Visibility</Field.Label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: disabled ? 'default' : 'pointer', minHeight: 40 }}>
@@ -39,7 +39,7 @@ const NewsVisibilityInput = forwardRef<HTMLInputElement, Props>(
             />
             <span aria-hidden style={{ position: 'absolute', top: 4, left: isPublic ? 26 : 4, width: 18, height: 18, borderRadius: '50%', background: '#fff', pointerEvents: 'none', transition: 'left 120ms' }} />
           </span>
-          <strong>{isPublic ? 'Public' : 'Admin only'}</strong>
+          <strong>{isPublic ? 'Public' : 'Admin and staff only'}</strong>
         </label>
         <Field.Hint />
         <Field.Error />
