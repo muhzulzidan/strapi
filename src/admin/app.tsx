@@ -82,6 +82,13 @@ const replaceWebhookSettingsRoutes = (routes: RouteObject[]): RouteObject[] => {
 export default {
   register(app: StrapiApp) {
     app.customFields.register({
+      name: 'news-visibility',
+      type: 'boolean',
+      intlLabel: { id: 'tasfrl.news.visibility', defaultMessage: 'Visibility' },
+      intlDescription: { id: 'tasfrl.news.visibility.description', defaultMessage: 'Choose Public or Admin only.' },
+      components: { Input: async () => import('./components/NewsVisibilityInput') },
+    });
+    app.customFields.register({
       name: 'central-datetime',
       type: 'datetime',
       intlLabel: {

@@ -53,6 +53,12 @@
     "sendToWebhook": {
       "type": "boolean",
       "default": false
+    },
+    "isPublic": {
+      "type": "customField",
+      "customField": "global::news-visibility",
+      "default": true,
+      "required": true
     }
   },
   "collectionName": "newses"

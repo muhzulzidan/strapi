@@ -1,7 +1,9 @@
 import type { Core } from '@strapi/strapi';
+import { ensureNewsVisibilityLayout } from './news-visibility-layout';
 import {
   applyWebhookControllerOverrides,
   patchWebhookRunnerWithContentTypeFilter,
+  shouldDeliverNewsEntryWebhook,
 } from './webhook-content-type-filter';
 
 const CONTENT_VERSION_UID = 'api::content-version.content-version';
@@ -85,6 +87,7 @@ const shouldSendEntryWebhook = (
   entry: Record<string, any> | undefined,
   previousData?: Record<string, any>
 ): boolean => {
+  if (uid === 'api::news.news' && !shouldDeliverNewsEntryWebhook(entry)) return false;
   if (!ENTRY_WEBHOOK_URL || !ENTRY_WEBHOOK_UIDS.has(uid)) {
     return false;
   }
@@ -154,6 +157,7 @@ export default {
    * This gives you an opportunity to extend code.
    */
   register({ strapi }: { strapi: Core.Strapi }) {
+    strapi.customFields.register({ name: 'news-visibility', type: 'boolean', inputSize: { default: 12, isResizable: false } });
     strapi.customFields.register({
       name: 'central-datetime',
       type: 'datetime',
@@ -333,6 +337,7 @@ export default {
    * run jobs, or perform some special logic.
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    await ensureNewsVisibilityLayout(strapi);
     // Filter webhook deliveries for entry events by configured content types.
     await patchWebhookRunnerWithContentTypeFilter(strapi);
 

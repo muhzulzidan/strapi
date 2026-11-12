@@ -10,7 +10,7 @@ export default {
       path: '/content-versions/history',
       handler: 'content-version.getHistory',
       config: {
-        policies: [],
+        policies: ['global::content-history-admin'],
         auth: false,
       },
     },
@@ -19,7 +19,7 @@ export default {
       path: '/content-versions/:id',
       handler: 'content-version.getVersion',
       config: {
-        policies: [],
+        policies: ['global::content-history-admin'],
         auth: false,
       },
     },
@@ -28,7 +28,7 @@ export default {
       path: '/content-versions/compare',
       handler: 'content-version.compareVersions',
       config: {
-        policies: [],
+        policies: ['global::content-history-admin'],
         auth: false,
       },
     },
@@ -37,7 +37,7 @@ export default {
       path: '/content-versions/:versionId/revert',
       handler: 'content-version.revertToVersion',
       config: {
-        policies: [],
+        policies: ['global::content-history-admin'],
       },
     },
   ],

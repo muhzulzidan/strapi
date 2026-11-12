@@ -2,6 +2,9 @@ import type { Core } from '@strapi/strapi';
 
 type WebhookFilterMap = Record<string, string[]>;
 
+export const shouldDeliverNewsEntryWebhook = (entry: Record<string, any> | undefined): boolean =>
+  entry?.isPublic !== false && entry?.sendToWebhook === true;
+
 type EntryWebhookEvent =
   | 'entry.create'
   | 'entry.update'
@@ -537,7 +540,8 @@ export const patchWebhookRunnerWithContentTypeFilter = async (
     const allowedContentTypes = getWebhookFilter(webhook?.id);
     const resolvedUid = resolveEntryEventContentTypeUid(aliasLookup, info);
 
-    if (!shouldDeliverEntryEvent(event, allowedContentTypes, resolvedUid)) {
+    const newsWebhookDisabled = resolvedUid === 'api::news.news' && !shouldDeliverNewsEntryWebhook(info?.entry);
+    if (newsWebhookDisabled || !shouldDeliverEntryEvent(event, allowedContentTypes, resolvedUid)) {
       const skipped = {
         statusCode: 204,
         message: 'Skipped by webhook content-type filter',

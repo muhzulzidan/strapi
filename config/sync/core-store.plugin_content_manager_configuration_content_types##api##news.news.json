@@ -227,6 +227,19 @@
           "searchable": true,
           "sortable": true
         }
+      },
+      "isPublic": {
+        "edit": {
+          "label": "Visibility",
+          "description": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Public",
+          "searchable": false,
+          "sortable": true
+        }
       }
     },
     "layouts": {
@@ -237,6 +250,12 @@
         "author"
       ],
       "edit": [
+        [
+          {
+            "name": "isPublic",
+            "size": 12
+          }
+        ],
         [
           {
             "name": "title",
